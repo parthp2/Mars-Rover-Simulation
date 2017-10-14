@@ -1,5 +1,15 @@
 package MapSupport;
 
+import java.util.HashMap;
+import java.util.Map;
+
+import org.json.simple.JSONArray;
+import org.json.simple.JSONObject;
+
+import communicationInterface.CommunicationHelper;
+import enums.Science;
+import enums.Terrain;
+
 public class PlanetMap {
 	private MapTile[][] planetMap;
 	// width is number of columns is xloc, height is number of rows is yloc
@@ -48,6 +58,56 @@ public class PlanetMap {
 	public PlanetMap(String filename){
 		// TODO add ability to instantiate from JSON or binary file
 	}
+	
+	public PlanetMap(JSONArray data) {
+		
+		Map<Coord, MapTile> tileMap = new HashMap<Coord, MapTile>();
+		
+		int maxX = 0;
+		int maxY = 0;
+		int x;
+		int y;
+		
+		for (Object o : data) {
+			
+			JSONObject jsonObj = (JSONObject) o;
+			
+			x = (int) (long)jsonObj.get("x");
+			y = (int) (long)jsonObj.get("y");
+			
+			if ((x < 0) || (y < 0)) continue; // ingores negative index assuming all negative are unreachable NONE type
+			
+			if (x > maxX) maxX = x;
+			if (y > maxY) maxY = y;
+			
+			Coord coord = new Coord(x,y);
+
+			MapTile tile = CommunicationHelper.convertToMapTile(jsonObj);
+			
+			tileMap.put(coord, tile);
+		}
+		
+		this.mapHeight = maxY + 1; // 0 index must add one
+		this.mapWidth = maxX + 1; // 0 index must add one
+		this.planetMap = new MapTile[mapWidth][mapHeight];
+		this.startPosCoord = new Coord(0, 0);
+		this.targetPosCoord = new Coord(0, 0);
+		
+		for(int j=0;j<mapHeight;j++){
+			for(int i=0;i<mapWidth;i++){
+				this.planetMap[i][j] = new MapTile(1); // None as terrain type are unexplored tiles
+			}
+		}
+
+		for(Coord coord : tileMap.keySet()) {
+			
+			int xpos = coord.xpos;
+			int ypos = coord.ypos;
+			
+			planetMap[xpos][ypos] = tileMap.get(coord);
+		}
+	}
+	
 	
 	public PlanetMap(PlanetMap planetMapIn) {
 		this.planetMap = planetMapIn.planetMap.clone();
@@ -115,8 +175,16 @@ public class PlanetMap {
 		return this.startPosCoord;
 	}
 	
+	public void setStartPosition(Coord start){
+		this.startPosCoord = start;
+	}
+	
 	public Coord getTargetPosition(){
 		return this.targetPosCoord;
+	}
+	
+	public void setTargetPosition(Coord target){
+		this.targetPosCoord = target;
 	}
 	
 	
@@ -186,4 +254,60 @@ public class PlanetMap {
 	
 		this.planetMap[3][3] = new MapTile("S");
 	}
+	
+	
+	
+	public void debugPrintMap(){
+
+	int edgeSizeX = mapWidth;
+	int edgeSizeY = mapHeight;
+	
+	Science science;
+	Terrain terrain;
+	MapTile tile;
+	
+	for(int k=0;k<edgeSizeX + 2;k++){System.out.print("--");}
+	System.out.print("\n");
+	for(int j= 0; j< edgeSizeY; j++){
+		System.out.print("| ");
+		for(int i= 0; i< edgeSizeX; i++){
+			
+			tile = planetMap[i][j];
+			science = tile.getScience();
+			terrain = tile.getTerrain();
+			
+			//check and print edge of map has first priority
+			if(terrain.equals(Terrain.NONE)){
+				System.out.print("::");
+				
+			// next most important - print terrain and/or science locations
+				//terrain and science
+			} else if(!terrain.equals(Terrain.SOIL) && !science.equals(Science.NONE)){
+				// both terrain and science
+				
+				System.out.print(terrain.getTerString() + science.getSciString());
+				//just terrain
+			} else if(!terrain.equals(Terrain.SOIL)){
+				System.out.print(terrain.getTerString() + " ");
+				//just science
+			} else if(!science.equals(Science.NONE)){
+				System.out.print(" " + science.getSciString());
+				
+			// if still empty check for rovers and print them
+			} else if(tile.getHasRover()){
+				System.out.print("[]");
+				
+			// nothing here so print nothing
+			} else {
+				System.out.print("  ");
+			}
+		}	
+		System.out.print(" |\n");		
+	}
+	for(int k=0;k<edgeSizeX +2;k++){
+		System.out.print("--");
+	}
+	System.out.print("\n");
+	}
+	
 }

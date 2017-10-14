@@ -37,12 +37,11 @@ public class Rover {
 	public int sleepTime;
 	public String SERVER_ADDRESS = "localhost"; //default value
 	public String timeRemaining;
-	public Coord currentLoc = null;
-	public Coord previousLoc = null;
-	public Coord startLocation = null;
-	public Coord targetLocation = null;
-
-	public ArrayList<String> equipment = new ArrayList<String>();
+	public Coord currentLoc;
+	public Coord previousLoc;
+	public Coord startLocation;
+	public Coord targetLocation;
+	public ArrayList<String> equipment;
 
 	// Hardcoded port number for the CS-5337 class
 	protected static final int PORT_ADDRESS = 9537;

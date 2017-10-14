@@ -7,7 +7,12 @@ import java.io.PrintWriter;
 import java.lang.reflect.Type;
 import java.net.Socket;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+
+import org.json.simple.JSONArray;
+import org.json.simple.JSONObject;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -15,10 +20,14 @@ import com.google.gson.reflect.TypeToken;
 
 import MapSupport.Coord;
 import MapSupport.MapTile;
+import MapSupport.PlanetMap;
 import MapSupport.ScanMap;
 import common.Rover;
 import communicationInterface.Communication;
+import communicationInterface.CommunicationHelper;
+import enums.Science;
 import enums.Terrain;
+import rover_logic.Astar;
 
 /*
  * The seed that this program is built on is a chat program example found here:
@@ -45,6 +54,8 @@ import enums.Terrain;
 
 public class ROVER_07 extends Rover {
 
+	PlanetMap globalMap;
+	
 	/**
 	 * Runs the client
 	 */
@@ -74,7 +85,14 @@ public class ROVER_07 extends Rover {
 		rovername = "ROVER_07";
 		SERVER_ADDRESS = serverAddress;
 	}
-
+	
+	
+	/**************************
+	 * Communications Functions
+	 ***************************/
+	// get data from server and update field map
+	
+	
 	/**
 	 * 
 	 * The Rover Main instantiates and runs the rover as a runnable thread
@@ -121,11 +139,7 @@ public class ROVER_07 extends Rover {
 			boolean blocked = false;
 	
 			// might or might not have a use for this
-			String[] cardinals = new String[4];
-			cardinals[0] = "N";
-			cardinals[1] = "E";
-			cardinals[2] = "S";
-			cardinals[3] = "W";	
+			String[] cardinals = {"N", "E", "S", "W"};
 			String currentDir = cardinals[0];		
 			
 
@@ -188,10 +202,25 @@ public class ROVER_07 extends Rover {
 	            // This allows other rover's to access a history of the terrain this rover has moved over.
 
 	            System.out.println("do com.postScanMapTiles(currentLoc, scanMapTiles)");
-	            System.out.println("post message: " + com.postScanMapTiles(currentLoc, scanMap.getScanMap()));
+	            String postScanMapTilesResponse = com.postScanMapTiles(currentLoc, scanMap.getScanMap());
+	            
+	            System.out.println("post message: " + postScanMapTilesResponse);
 	            System.out.println("done com.postScanMapTiles(currentLoc, scanMapTiles)");
-
-				
+	            
+	            
+	            
+	            
+	            
+	            System.out.println("do com.getGlobalMap()");
+	            JSONArray getGlobalMapResponse = com.getGlobalMap();
+	            System.out.println("done com.getGlobalMap()");
+	            
+	            System.out.println("updating globalMap ...");
+	            globalMap = new PlanetMap(getGlobalMapResponse);
+	            System.out.println("globalMap updated");
+	            
+	            globalMap.debugPrintMap();
+	            
 							
 				// ***** get TIMER time remaining *****
 				timeRemaining = getTimeRemaining();
