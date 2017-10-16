@@ -1,6 +1,5 @@
 package MapSupport;
 
-import enums.RoverConfiguration;
 import enums.Science;
 import enums.Terrain;
 

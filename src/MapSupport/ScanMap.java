@@ -24,6 +24,10 @@ public class ScanMap {
 		return scanArray;
 	}
 	
+	public Coord getcenterPoint(){
+		return centerPoint;
+	}
+	
 	public void debugPrintMap(){
 		
 		Science science;

@@ -59,7 +59,8 @@ public class PlanetMap {
 		// TODO add ability to instantiate from JSON or binary file
 	}
 	
-	public PlanetMap(JSONArray data) {
+	// creates a PlanetMap from JSONArray that is received from server
+	public PlanetMap(JSONArray data, Coord start, Coord target) {
 		
 		Map<Coord, MapTile> tileMap = new HashMap<Coord, MapTile>();
 		
@@ -87,18 +88,28 @@ public class PlanetMap {
 			tileMap.put(coord, tile);
 		}
 		
+		this.startPosCoord = start;
+		this.targetPosCoord = target;
+		
+		// mostly used to build a local map to run search to target
+		// will build map big enough to run search for target
+		if (target.xpos > maxX) maxX = target.xpos; 
+		if (target.ypos > maxY) maxY = target.ypos;
+		
 		this.mapHeight = maxY + 1; // 0 index must add one
 		this.mapWidth = maxX + 1; // 0 index must add one
+		
 		this.planetMap = new MapTile[mapWidth][mapHeight];
-		this.startPosCoord = new Coord(0, 0);
-		this.targetPosCoord = new Coord(0, 0);
+		
+		MapTile unexploredTile = new MapTile(1);
 		
 		for(int j=0;j<mapHeight;j++){
 			for(int i=0;i<mapWidth;i++){
-				this.planetMap[i][j] = new MapTile(1); // None as terrain type are unexplored tiles
+				this.planetMap[i][j] =  unexploredTile; // all tiles start off as unexplored
 			}
 		}
-
+		
+		// explored tiles are filled in from the tileMap derived from the json
 		for(Coord coord : tileMap.keySet()) {
 			
 			int xpos = coord.xpos;
@@ -119,6 +130,32 @@ public class PlanetMap {
 
 	public void setTile(MapTile tile, int xloc, int yloc){
 		this.planetMap[xloc][yloc] = tile;
+	}
+	
+	// adds missing rover data from ScanMap to PlanetMap
+	public void addScanDataMissing(ScanMap scan){
+		
+		MapTile[][] scanMap = scan.getScanMap();
+		
+		Coord scanCenter = scan.getcenterPoint();
+		
+		int x;
+		int y = scanCenter.ypos - 3;
+		
+		for(int j = 0;j < scanMap.length; j++, y++) {
+			
+			x = scanCenter.xpos - 3;
+			
+			for(int i = 0; i < scanMap[0].length; i++, x++) {
+				
+				if(x < 0 || y < 0) continue;
+				if(x == scanCenter.xpos - 3 || y == scanCenter.ypos - 3) continue;
+				
+				if(this.planetMap[x][y].getHasRover() != scanMap[i][j].getHasRover()) {
+					this.planetMap[x][y].setHasRoverTrue();
+				}
+			}	
+		}
 	}
 	
 	public MapTile getTile(Coord coord){
@@ -256,7 +293,7 @@ public class PlanetMap {
 	}
 	
 	
-	
+	// displays PlanetMap for debugging
 	public void debugPrintMap(){
 
 	int edgeSizeX = mapWidth;
@@ -282,9 +319,10 @@ public class PlanetMap {
 				
 			// next most important - print terrain and/or science locations
 				//terrain and science
+			} else if(tile.getHasRover()) {
+				System.out.print("[]");
 			} else if(!terrain.equals(Terrain.SOIL) && !science.equals(Science.NONE)){
 				// both terrain and science
-				
 				System.out.print(terrain.getTerString() + science.getSciString());
 				//just terrain
 			} else if(!terrain.equals(Terrain.SOIL)){
@@ -292,12 +330,6 @@ public class PlanetMap {
 				//just science
 			} else if(!science.equals(Science.NONE)){
 				System.out.print(" " + science.getSciString());
-				
-			// if still empty check for rovers and print them
-			} else if(tile.getHasRover()){
-				System.out.print("[]");
-				
-			// nothing here so print nothing
 			} else {
 				System.out.print("  ");
 			}
