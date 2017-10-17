@@ -18,6 +18,7 @@ import com.google.gson.reflect.TypeToken;
 
 import MapSupport.Coord;
 import MapSupport.MapTile;
+import MapSupport.PlanetMap;
 import MapSupport.ScanMap;
 import communicationInterface.Communication;
 import communicationInterface.RoverDetail;
@@ -36,7 +37,10 @@ public class Rover {
 	protected PrintWriter sendTo_RCP;
 
 	public String rovername;
+	
 	public ScanMap scanMap;
+	public PlanetMap globalMap;
+	
 	public int sleepTime;
 	public String SERVER_ADDRESS = "localhost"; //default value
 	public int timeRemaining;

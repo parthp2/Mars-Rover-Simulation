@@ -78,23 +78,27 @@ public class PlanetMap {
 			
 			if ((x < 0) || (y < 0)) continue; // ingores negative index assuming all negative are unreachable NONE type
 			
-			if (x > maxX) maxX = x;
-			if (y > maxY) maxY = y;
 			
 			Coord coord = new Coord(x,y);
 
 			MapTile tile = CommunicationHelper.convertToMapTile(jsonObj);
+			
+			if (!tile.getTerrain().equals(Terrain.NONE)) {
+				if (x > maxX) maxX = x;
+				if (y > maxY) maxY = y;
+			}
 			
 			tileMap.put(coord, tile);
 		}
 		
 		this.startPosCoord = start;
 		this.targetPosCoord = target;
-		
+	
 		// mostly used to build a local map to run search to target
 		// will build map big enough to run search for target
-		if (target.xpos > maxX) maxX = target.xpos; 
+		if (target.xpos > maxX) maxX = target.xpos;
 		if (target.ypos > maxY) maxY = target.ypos;
+		
 		
 		this.mapHeight = maxY + 1; // 0 index must add one
 		this.mapWidth = maxX + 1; // 0 index must add one
@@ -103,19 +107,26 @@ public class PlanetMap {
 		
 		MapTile unexploredTile = new MapTile(1);
 		
-		for(int j=0;j<mapHeight;j++){
-			for(int i=0;i<mapWidth;i++){
-				this.planetMap[i][j] =  unexploredTile; // all tiles start off as unexplored
+		for(int j = 0; j< mapHeight; j++){
+			for(int i = 0; i< mapWidth; i++){
+				this.planetMap[i][j] = unexploredTile; // all tiles start off as unexplored
 			}
 		}
+		
+		int xpos;
+		int ypos;
 		
 		// explored tiles are filled in from the tileMap derived from the json
 		for(Coord coord : tileMap.keySet()) {
 			
-			int xpos = coord.xpos;
-			int ypos = coord.ypos;
+			MapTile tile = tileMap.get(coord);
 			
-			planetMap[xpos][ypos] = tileMap.get(coord);
+			if (tile.getTerrain().equals(Terrain.NONE)) continue;
+			
+			xpos = coord.xpos;
+			ypos = coord.ypos;
+			
+			this.planetMap[xpos][ypos] = tileMap.get(coord);
 		}
 	}
 	
@@ -149,11 +160,8 @@ public class PlanetMap {
 			for(int i = 0; i < scanMap[0].length; i++, x++) {
 				
 				if(x < 0 || y < 0) continue;
-				if(x == scanCenter.xpos - 3 || y == scanCenter.ypos - 3) continue;
-				
-				if(this.planetMap[x][y].getHasRover() != scanMap[i][j].getHasRover()) {
-					this.planetMap[x][y].setHasRoverTrue();
-				}
+				if(x > mapWidth - 1 || y > mapHeight - 1) continue;
+				if(scanMap[i][j].getHasRover()) this.planetMap[x][y].setHasRoverTrue();
 			}	
 		}
 	}
