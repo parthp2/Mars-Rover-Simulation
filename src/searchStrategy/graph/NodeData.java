@@ -25,6 +25,17 @@ public class NodeData {
         this.isOccupied = isOccupied;
     }
     
+    public NodeData(PlanetMap planet, Coord coord) {
+        
+    	this.x = coord.xpos;
+        this.y = coord.ypos;
+        
+        MapTile tile = planet.getTile(x, y);
+        
+        this.type = tile.getTerrain();
+        this.isOccupied = tile.getHasRover();
+    }
+    
     public NodeData(Coord coord, MapTile mapTile) {
         this.x = coord.xpos;
         this.y = coord.ypos;
@@ -65,8 +76,8 @@ public class NodeData {
 
         if (getX() != nd.getX()) return false;
         if (getY() != nd.getY()) return false;
-        if (getType() != nd.getType()) return false;
-        if (occupied() != nd.occupied()) return false;
+//        if (getType() != nd.getType()) return false;
+//        if (occupied() != nd.occupied()) return false;
         
         return true;
     }

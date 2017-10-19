@@ -35,6 +35,9 @@ public class Rover {
 	// setup the RoverCommandProcessor links
 	protected BufferedReader receiveFrom_RCP;
 	protected PrintWriter sendTo_RCP;
+	
+	//  made communication a rover variable so it does not need to be created over and over
+	public Communication communication;
 
 	public String rovername;
 	
@@ -49,8 +52,6 @@ public class Rover {
 	public Coord startLocation;
 	public Coord targetLocation;
 	public ArrayList<String> equipment;
-	
-	public Set<String> drivableTerrain; // the terrain rover can drive on
 
 	// Hardcoded port number for the CS-5337 class
 	protected static final int PORT_ADDRESS = 9537;
@@ -173,27 +174,6 @@ public class Rover {
 		return returnList;
 	}
 	
-	// sets terrain rover can drive on used in SearchStrategy class
-	public void setDrivableTerrain(RoverDriveType drive) {
-		
-		drivableTerrain = new HashSet<String>();
-		
-		// all types can traverse these
-		drivableTerrain.add(Terrain.NONE.getTerString()); 
-		drivableTerrain.add(Terrain.SOIL.getTerString());
-		drivableTerrain.add(Terrain.GRAVEL.getTerString());
-		
-		switch (drive) {
-		case WALKER:
-			drivableTerrain.add(Terrain.ROCK.getTerString());
-			break;
-		case TREADS:
-			drivableTerrain.add(Terrain.SAND.getTerString());
-			break;
-		default:
-			break;
-		}
-	}
 
 	// sends a SCAN request to the server and puts the result in the scanMap
 	// array
@@ -259,8 +239,8 @@ public class Rover {
 
 		ScienceDetail minDistanceScienceDetail = null;
 		try {
-			Communication communication = new Communication(
-					"http://localhost:3000/api", rovername, "open_secret");
+//			Communication communication = new Communication(
+//					"http://localhost:3000/api", rovername, "open_secret");
 
 			ScienceDetail[] scienceDetails = communication
 					.getAllScienceDetails();
@@ -492,9 +472,11 @@ public class Rover {
 
 		try {
 			Coord currentLoc = getCurrentLocation();
-			MapTile[][] scanMapTiles = doScan().getScanMap();
-			Communication communication = new Communication(
-					"http://localhost:3000/api", rovername, "open_secret");
+			// changed to line below, previous caused an extra request
+//			MapTile[][] scanMapTiles = doScan().getScanMap(); 
+			MapTile[][] scanMapTiles = scanMap.getScanMap();
+//			Communication communication = new Communication(
+//					"http://localhost:3000/api", rovername, "open_secret"); // commented out
 			communication.postScanMapTiles(currentLoc, scanMapTiles);
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -526,8 +508,8 @@ public class Rover {
 					.valueOf(roverConfiguration.getMembers().get(2));
 			roverDetail.setToolType2(tollType2);
 
-			Communication communication = new Communication(
-					"http://localhost:3000/api", rovername, "open_secret");
+//			Communication communication = new Communication(
+//					"http://localhost:3000/api", rovername, "open_secret");
 			communication.sendRoverDetail(roverDetail);
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -540,8 +522,8 @@ public class Rover {
 	protected RoverDetail[] getAllRoverDetails() {
 
 		try {
-			Communication communication = new Communication(
-					"http://localhost:3000/api", rovername, "open_secret");
+//			Communication communication = new Communication(
+//					"http://localhost:3000/api", rovername, "open_secret");
 			return communication.getAllRoverDetails();
 		} catch (Exception e) {
 			System.err.println(
@@ -554,8 +536,8 @@ public class Rover {
 	protected void gatherScience(Coord coord) {
 
 		try {
-			Communication communication = new Communication(
-					"http://localhost:3000/api", rovername, "open_secret");
+//			Communication communication = new Communication(
+//					"http://localhost:3000/api", rovername, "open_secret");
 			communication.markScienceForGather(coord);
 			sendTo_RCP.println("GATHER");
 		} catch (Exception e) {

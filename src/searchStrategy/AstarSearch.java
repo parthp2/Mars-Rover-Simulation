@@ -20,8 +20,9 @@ public class AstarSearch implements SearchStrategy{
 
     // D is a scale value for you to adjust performance vs accuracy
     private final double D = 0.5;
-
-    public List<Edge> search(Graph graph, Set<String> drivableTerrain, Node source, Node destination) {
+    
+    @Override
+    public List<Edge> search(Graph graph, Node source, Node destination) {
 
         Queue<Node> frontier = new PriorityQueue<>(new NodeComparator());
         Set<Node> exploredSet = new HashSet<Node>();
@@ -29,7 +30,9 @@ public class AstarSearch implements SearchStrategy{
         Node parent = null;
 
         Collection<Node> nodeCollection = graph.getNodes();
-
+        
+        NodeData nd;
+        
         // initialize g, h, parent for all nodes
         for(Node node: nodeCollection) {
 
@@ -38,7 +41,7 @@ public class AstarSearch implements SearchStrategy{
             node.h = heuristicManhatten(node, destination);
 //            node.h = heuristicEuclidean(node, destination);
             
-            NodeData nd = (NodeData)node.getData();
+            nd = (NodeData)node.getData();
 
             // set source g value
             if (node.equals(source)) {
@@ -46,7 +49,7 @@ public class AstarSearch implements SearchStrategy{
                 node.g = 0;
             }
             
-            // remove occupied nodes that are not current and target from path
+            // remove occupied nodes that are not current or target from path
             if (nd.occupied() && !node.equals(source) && !node.equals(destination)) {
             	exploredSet.add(node); // remove occupied nodes from search
             }     
@@ -73,15 +76,6 @@ public class AstarSearch implements SearchStrategy{
 
                 // skips previously explored paths
                 if (exploredSet.contains(child)) {
-                    continue;
-                }
-
-                NodeData childData = (NodeData) child.getData();
-                String data = childData.getType();
-
-                // if current child is not drivable terrain add to explored set
-                if (!drivableTerrain.contains(data)) {
-                    exploredSet.add(child);
                     continue;
                 }
 

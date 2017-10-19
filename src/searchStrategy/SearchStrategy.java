@@ -17,5 +17,5 @@ import enums.Terrain;
 
 
 public interface SearchStrategy {
-    public List<Edge> search(Graph graph, Set<String> drivableTerrain,  Node source, Node dist);
+    public List<Edge> search(Graph graph,  Node source, Node destination);
 }

@@ -1,7 +1,9 @@
 package MapSupport;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
@@ -298,6 +300,20 @@ public class PlanetMap {
 		this.planetMap[1][4] = new MapTile("R"); 
 	
 		this.planetMap[3][3] = new MapTile("S");
+	}
+	
+	// added ability to get map tiles
+	public Map<Coord, MapTile> getAllTiles() {
+		
+		HashMap<Coord, MapTile> tiles = new HashMap<>();
+		
+		for(int j=0;j<mapHeight;j++){
+			for(int i=0;i<mapWidth;i++){
+				tiles.put(new Coord(i,j), this.planetMap[i][j]);
+			}
+		}
+		
+		return tiles;
 	}
 	
 	
