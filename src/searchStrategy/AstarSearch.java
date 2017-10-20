@@ -3,11 +3,11 @@ package searchStrategy;
 
 import java.util.*;
 
+import MapSupport.Coord;
 import searchStrategy.graph.Edge;
 import searchStrategy.graph.Graph;
 import searchStrategy.graph.Node;
 import searchStrategy.graph.NodeComparator;
-import searchStrategy.graph.NodeData;
 
 /**
  * 
@@ -19,11 +19,17 @@ import searchStrategy.graph.NodeData;
 public class AstarSearch implements SearchStrategy{
 
     // D is a scale value for you to adjust performance vs accuracy
-    private final double D = 0.5;
+    private final double D = 1.5;
     
     @Override
     public List<Edge> search(Graph graph, Node source, Node destination) {
 
+    	if (source.equals(destination)) {
+    		List<Edge> sameNode = new ArrayList<Edge>();
+    		sameNode.add(new Edge(source, destination, 0));
+    		return sameNode; 
+    	}
+    	
         Queue<Node> frontier = new PriorityQueue<>(new NodeComparator());
         Set<Node> exploredSet = new HashSet<Node>();
 
@@ -31,29 +37,18 @@ public class AstarSearch implements SearchStrategy{
 
         Collection<Node> nodeCollection = graph.getNodes();
         
-        NodeData nd;
-        
         // initialize g, h, parent for all nodes
         for(Node node: nodeCollection) {
 
             node.parent = null;
             node.g = Double.POSITIVE_INFINITY;
             node.h = heuristicManhatten(node, destination);
-//            node.h = heuristicEuclidean(node, destination);
-            
-            nd = (NodeData)node.getData();
 
             // set source g value
             if (node.equals(source)) {
             	parent = node;
                 node.g = 0;
             }
-            
-            // remove occupied nodes that are not current or target from path
-            if (nd.occupied() && !node.equals(source) && !node.equals(destination)) {
-            	exploredSet.add(node); // remove occupied nodes from search
-            }     
- 
         }
 
         // add to frontier
@@ -79,8 +74,7 @@ public class AstarSearch implements SearchStrategy{
                     continue;
                 }
 
-                tempGScore = parent.g + graph.distance(parent, child); // added penalty for having a rover on it acts like a wall
-
+                tempGScore = parent.g + graph.distance(parent, child);
                 if (tempGScore >= child.g) {
                     continue;// skip because we are at the worse path
                 }
@@ -97,11 +91,11 @@ public class AstarSearch implements SearchStrategy{
     // uses manhatten distance
     private double heuristicManhatten(Node node, Node destination) {
 
-        NodeData nodeData = (NodeData) node.getData();
-        NodeData destinationData = (NodeData) destination.getData();
+        Coord nodeData = (Coord)node.getData();
+        Coord destinationData = (Coord) destination.getData();
 
-        int dx = Math.abs(nodeData.getX() - destinationData.getX());
-        int dy = Math.abs(nodeData.getY() - destinationData.getY());
+        int dx = Math.abs(nodeData.xpos - destinationData.xpos);
+        int dy = Math.abs(nodeData.ypos - destinationData.ypos);
         
         return D * dx + dy;
     }
