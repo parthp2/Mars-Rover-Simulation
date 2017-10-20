@@ -75,8 +75,10 @@ public class ROVER_07 extends Rover {
 	private long timeSinceLastMove = 10000L;
 	private long timeSinceLastGather = 10000L;
 	
+	private long lagCushion = 25L; // helps performance
+	
 	private long moveCooldown = 10000L;
-	private long gatherCooldown = 3430; // default to gather speed from RPC + 30
+	private long gatherCooldown = 3400L + lagCushion; // default to gather speed from RPC + 30
 	
 
 	
@@ -193,9 +195,10 @@ public class ROVER_07 extends Rover {
 			Graph graph = null; // graph created to search on
 	    	List<Edge> path = null; // path rover will take using searchStrategy and graph
 	        Edge nextMove = null; // edge containing from current -> next node in graph coord
-	        Coord finalTarget = null; // Coord used to get minerals on the way to a target not used yet
 	        long startTime = 0; // used to check how long  outer while loop takes
 	        
+	        
+	        Coord finalTarget = null; //TODO use this to implement search for resources onway to target;
 	        
 			/**
 			 *  ####  Rover controller process loop  ####
@@ -242,7 +245,11 @@ public class ROVER_07 extends Rover {
 	            
 				System.out.println(rovername + " currentLoc at: " + currentLoc);
 				System.out.println(rovername + " targetLocation at: " + targetLocation);
-				System.out.println("resources " + rovername + " can reach: " + tilesRoverCanGather());
+				
+				System.out.println("resources " + rovername + " tiles in map:" + globalMap.getAllTiles().size());
+				System.out.println("resources " + rovername + " can gather: " + tilesRoverCanGather().size());
+				System.out.println("resources " + rovername + " can reach: " + tilesRoverCanReach().size());
+				System.out.println("resources " + rovername + " can explore: " + unkownTiles().size());
 	            
 	            
 	            // Rover State Machine new states can be added with new cases with new State enums
@@ -344,8 +351,8 @@ public class ROVER_07 extends Rover {
 						Set<Coord> tiles = tilesRoverCanReach();
 						path = null;
 						
-						// makes sure target is in graph and try to find path
-						if (!tiles.contains(targetLocation)) {
+						if (tiles.contains(targetLocation)) {
+							
 							graph = new  Graph(globalMap.getWidth(), globalMap.getHeight(), tiles);
 							path = findPath(graph, currentLoc, targetLocation);
 						}
@@ -412,7 +419,7 @@ public class ROVER_07 extends Rover {
 						
 					case MOVING: // governs how rover moves along path
 						
-						if (reachedTarget(path, targetLocation)) {
+						if (reachedTarget(currentLoc, targetLocation)) {
 							
 							System.out.println("reached target entering state REACHED_TARGET...");
 							roverState = State.REACHED_TARGET;
@@ -433,7 +440,7 @@ public class ROVER_07 extends Rover {
 							move(nextMove);
 							
 							// resets move cooldown after move
-							resetMoveCooldown();
+							 resetMoveCooldown();
 							
 							System.out.println("moved to next MapTile entering state MOVING...");
 							roverState = State.MOVING;
@@ -450,9 +457,12 @@ public class ROVER_07 extends Rover {
 	            
 	            timeRemaining = getTimeRemaining();
 				System.out.println(rovername + " ------------ END PROCESS CONTROLL LOOP -----TIME: " + (System.currentTimeMillis() - startTime));
-
+				
 				// this is the Rover's HeartBeat, it regulates how fast the Rover cycles through the control loop
 				// ***** get TIMER time remaining *****
+//				resetMoveCooldown();
+
+
 				
 			}  // ***** END of Rover control While(true) loop *****
 					
@@ -517,9 +527,9 @@ public class ROVER_07 extends Rover {
 	}
 	
 	// passed target to allow to use in waypoints
-	private boolean reachedTarget(List<Edge> path, Coord target) {
+	private boolean reachedTarget(Coord current, Coord target) {
 		
-		return ((Coord)path.get(path.size() - 1).getTo().getData()).equals(target);
+		return current.equals(target);
 	}
 	
 	private long gatherCooldownRemaining(long cooldown) {
@@ -562,12 +572,8 @@ public class ROVER_07 extends Rover {
 	private List<Edge> findPath(Graph graph , Coord from, Coord to) {
 		
 		Node fromNode = graph.getNode(new Node<>(from));
-			
-		
 		Node toNode = graph.getNode(new Node<>(to));
-
 		
-
 		return searchStrategy.search(graph, fromNode, toNode);	
 	}
 	
@@ -582,7 +588,7 @@ public class ROVER_07 extends Rover {
 			drivableTerrain.add(Terrain.GRAVEL.getTerString());
 			
 			drivableTerrain.add(Terrain.ROCK.getTerString());
-			moveCooldown = 1200;
+			moveCooldown = 1200L + lagCushion;
 			break;
 			
 		case TREADS:
@@ -591,14 +597,14 @@ public class ROVER_07 extends Rover {
 			drivableTerrain.add(Terrain.GRAVEL.getTerString());
 			
 			drivableTerrain.add(Terrain.SAND.getTerString());
-			moveCooldown = 900;
+			moveCooldown = 900L + lagCushion;
 			break;
 			
 		case WHEELS:
 			drivableTerrain.add(Terrain.UNKNOWN.getTerString()); 
 			drivableTerrain.add(Terrain.SOIL.getTerString());
 			drivableTerrain.add(Terrain.GRAVEL.getTerString());
-			moveCooldown = 400;
+			moveCooldown = 400L + lagCushion;
 			break;
 			
 		default:

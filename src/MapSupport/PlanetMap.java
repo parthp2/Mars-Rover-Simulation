@@ -68,8 +68,8 @@ public class PlanetMap {
 		
 		int maxX = 0;
 		int maxY = 0;
-		int x;
-		int y;
+		int x = 0;
+		int y = 0;
 		
 		for (Object o : data) {
 			
@@ -101,9 +101,8 @@ public class PlanetMap {
 		if (target.xpos > maxX) maxX = target.xpos;
 		if (target.ypos > maxY) maxY = target.ypos;
 		
-		
-		this.mapHeight = maxY + 1; // 0 index must add one
 		this.mapWidth = maxX + 1; // 0 index must add one
+		this.mapHeight = maxY + 1; // 0 index must add one
 		
 		this.planetMap = new MapTile[mapWidth][mapHeight];
 		
@@ -115,20 +114,19 @@ public class PlanetMap {
 			}
 		}
 		
-		int xpos;
-		int ypos;
-		
 		// explored tiles are filled in from the tileMap derived from the json
-		for(Coord coord : tileMap.keySet()) {
+		
+		MapTile tile;
+		Coord coord;
+		
+		for(Map.Entry<Coord, MapTile> entry : tileMap.entrySet()) {
+			coord = entry.getKey();
+			tile = entry.getValue();
 			
-			MapTile tile = tileMap.get(coord);
+			if (coord.xpos >= mapWidth || coord.xpos < 0
+					|| coord.ypos >= mapHeight || coord.ypos < 0) continue;
 			
-			if (tile.getTerrain().equals(Terrain.NONE)) continue;
-			
-			xpos = coord.xpos;
-			ypos = coord.ypos;
-			
-			this.planetMap[xpos][ypos] = tileMap.get(coord);
+			this.planetMap[coord.xpos][coord.ypos] = tile;
 		}
 	}
 	
@@ -163,6 +161,10 @@ public class PlanetMap {
 				
 				if(x < 0 || y < 0) continue;
 				if(x > mapWidth - 1 || y > mapHeight - 1) continue;
+				
+				if((x == startPosCoord.xpos && y == startPosCoord.ypos) ||
+						(x == targetPosCoord.xpos && y == targetPosCoord.ypos)) continue;
+				
 				if(scanMap[i][j].getHasRover()) this.planetMap[x][y].setHasRoverTrue();
 			}	
 		}
@@ -338,8 +340,11 @@ public class PlanetMap {
 			terrain = tile.getTerrain();
 			
 			//check and print edge of map has first priority
-			if(terrain.equals(Terrain.NONE)){
+			if(terrain.equals(Terrain.UNKNOWN)){
 				System.out.print("::");
+			}
+			else if(terrain.equals(Terrain.NONE)){
+				System.out.print("XX");
 				
 			// next most important - print terrain and/or science locations
 				//terrain and science

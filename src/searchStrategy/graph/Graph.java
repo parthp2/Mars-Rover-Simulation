@@ -2,26 +2,20 @@ package searchStrategy.graph;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
-import java.util.Queue;
 import java.util.Set;
 
 import MapSupport.Coord;
-import MapSupport.MapTile;
-import MapSupport.PlanetMap;
 
 /**
  * 
  * @author luisfisherjr
  * 
- * AdjacencyList used inside Graph class
+ * AdjacencyList list implementation of graph second constructor and private method are
+ * specific to this project
  */
 
 
@@ -35,7 +29,8 @@ public class Graph {
     	adjacencyList = new HashMap<Node, Collection<Edge>>();
     }
     
-    public Graph(PlanetMap map, Set<Coord> tilesToInclude) {
+    // used with a set of Coords rover can drive on from PlanetMap
+    public Graph(int width, int height, Set<Coord> tilesToInclude) {
     	
     	indexedNodes  = new ArrayList<Node>();
     	adjacencyList = new HashMap<Node, Collection<Edge>>();
@@ -43,29 +38,40 @@ public class Graph {
     	Node fromNode;
     	Node toNode;
     	
+    	Coord fromCoord;
+    	Coord toCoord;
+    	
+    	
     	List<Node> nodes = new ArrayList<Node>();
     	List<Edge> edges = new ArrayList<Edge>();
     	
-    	for(Coord fromCoord: tilesToInclude) {
+    	Iterator<Coord> tilesToIncludeItor = tilesToInclude.iterator();
+    	Iterator<Coord> neighborsItor = null;
+    	
+    	while(tilesToIncludeItor.hasNext()) {
     		
-    		// create nodes and accumulate them
-    		fromNode = new Node<NodeData>(new NodeData(map, fromCoord));
+    		fromCoord = tilesToIncludeItor.next();
+    		fromNode = new Node<>(fromCoord);
+    		
     		nodes.add(fromNode);
     		
-    		for(Coord toCoord: reachableNeighbors(map, tilesToInclude, fromCoord)) {
+    		neighborsItor = reachableNeighbors(width, height, tilesToInclude, fromCoord).iterator();
+    		
+    		while (neighborsItor.hasNext()) {
     			
-    			// create edges and accumulate them
-    			toNode = new Node<NodeData>(new NodeData(map, toCoord));
-    			edges.add(new Edge(fromNode, toNode, 1));	
-    		}
+    			toCoord = neighborsItor.next();
+    			toNode = new Node<>(toCoord);
+    			
+    			edges.add(new Edge(fromNode, toNode, 1));				
+			}	
     	}
     	
     	addAllNodes(nodes);
     	addAllEdges(edges);
     }
     
-    // used in constructor from PlanetMap
-    private List<Coord> reachableNeighbors(PlanetMap map, Set<Coord> tilesToInclude, Coord fromCoord) {
+    // used in second constructor to get adjacent tiles
+    private List<Coord> reachableNeighbors(int width, int height, Set<Coord> tilesToInclude, Coord fromCoord) {
     	
     	List<Coord >neighbors = new ArrayList<>();
     	Coord neighborCoord;
@@ -84,7 +90,7 @@ public class Graph {
 		}
 		
 		// check EAST
-		if(fromCoord.xpos < map.getWidth() - 1) {
+		if(fromCoord.xpos < width - 1) {
 			
 			neighborCoord = new Coord(fromCoord.xpos + 1, fromCoord.ypos);
 			
@@ -106,7 +112,7 @@ public class Graph {
 		}
 		
 		// check SOUTH
-		if(fromCoord.ypos < map.getHeight() - 1) {
+		if(fromCoord.ypos < height - 1) {
 			
 			neighborCoord = new Coord(fromCoord.xpos, fromCoord.ypos + 1);
 			
@@ -279,31 +285,27 @@ public class Graph {
         return 0;
     }
 
-
     /**
     * returns all nodes
     */
     public Collection<Node> getNodes() {
-        return adjacencyList.keySet();
+        return indexedNodes;
     }
 
-    /**
-    * returns Optional that can retrieve node data
-    */
-    public Optional<Node> getNode(int index) {
-
-        Node n = indexedNodes.get(index);
-
-        return Optional.of(n);
-    }
-
-    public Optional<Node> getNode(Node node) {
-        Iterator<Node> iterator = adjacencyList.keySet().iterator();
-        Optional<Node> result = Optional.empty();
+    public Node getNode(Node node) {
+    	
+        Iterator<Node> iterator = indexedNodes.iterator();
+        
+        Node result = null;
+        
         while (iterator.hasNext()) {
+        	
             Node next = iterator.next();
+            
             if (next.equals(node)) {
-                result = Optional.of(next);
+               
+            	result = next;
+                break;
             }
         }
         return result;
