@@ -242,6 +242,7 @@ public class ROVER_07 extends Rover {
 	            
 				System.out.println(rovername + " currentLoc at: " + currentLoc);
 				System.out.println(rovername + " targetLocation at: " + targetLocation);
+				System.out.println("resources " + rovername + " can reach: " + tilesRoverCanGather());
 	            
 	            
 	            // Rover State Machine new states can be added with new cases with new State enums
@@ -250,7 +251,7 @@ public class ROVER_07 extends Rover {
 	            	
 	            	switch (roverState) {
 	            	
-	            	case EXPLORING:
+	            	case EXPLORING: // exploring unknown tiles
 	            		
 	            		System.out.println("tiles to explore: " + unkownTiles().size());
 	            		
@@ -263,21 +264,25 @@ public class ROVER_07 extends Rover {
 	            			System.out.println("new target to explore found entering state UPDATING_PATH...");
 							roverState = State.UPDATING_PATH;
 	            		}
+	            		else {
+	            			//TODO run around tiles that u can see to refresh
+	            		}
 	            		
 	            		
 	            		break;
 	            	
-					case FINDING_RESOURCE: // target selection
+					case FINDING_RESOURCE: // tile selection for gathering
 						
-						Set<Coord> locations = tilesRoverCanGather(); // gathered tiles are not updated on server must fix or looping happens
-						locations = tilesRoverCanGather();
+						//TODO put inside of a method way to much code
+						
+						Set<Coord> locations = tilesRoverCanGather();
 						
 						System.out.println("known resources: " + locations);
 						
 						if (locations.size() == 0) { // no tiles you can gather
 							
 							System.out.println("map has no gatherable resources entering state EXPLORE...");
-							roverState = State.EXPLORING;
+							roverState = State.EXPLORING; // enters exploring regardless of mode if there is no resources to gather
 							break;
 						}		
 						
@@ -293,8 +298,6 @@ public class ROVER_07 extends Rover {
 						while(locitor.hasNext()){
 							
 							location = locitor.next();
-							
-							System.out.println(location);
 							
 							newPath = findPath(graph, currentLoc, location);
 							
