@@ -5,9 +5,13 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 
 import org.json.simple.JSONArray;
@@ -21,6 +25,7 @@ import common.Rover;
 import communicationInterface.Communication;
 
 import enums.RoverDriveType;
+import enums.RoverMode;
 import enums.RoverToolType;
 import enums.Science;
 import enums.Terrain;
@@ -30,7 +35,6 @@ import searchStrategy.SearchStrategy;
 import searchStrategy.graph.Edge;
 import searchStrategy.graph.Graph;
 import searchStrategy.graph.Node;
-import searchStrategy.graph.NodeData;
 
 /*
  * The seed that this program is built on is a chat program example found here:
@@ -58,20 +62,23 @@ import searchStrategy.graph.NodeData;
 public class ROVER_07 extends Rover {
 	
 	private enum State {
-		UPDATING_PATH, MOVING, GATHERING, FINDING_TARGET, REACHED_TARGET
+		UPDATING_PATH, MOVING, GATHERING, FINDING_RESOURCE, REACHED_TARGET, EXPLORING
 	}
 	
-	private SearchStrategy searchStrategy;
+	private SearchStrategy searchStrategy = new AstarSearch(); // the search that we are using to find paths on graph
 	private Set<String> drivableTerrain = new HashSet<String>(); // the terrain rover can drive on
-	private Set<String> gatherableTerrain = new HashSet<String>();
-	private State roverState;
+	private Set<String> gatherableTerrain = new HashSet<String>(); // the terrain rover can gather on
+	
+	private RoverMode mode = RoverMode.GATHER; // start mode          GATHER, EXPLORE
+	private State roverState = State.UPDATING_PATH; // start state    UPDATING_PATH, EXPLORING, FINDING_RESOURCE, GATHERING, MOVING, REACHED_TARGET
 	
 	private long timeSinceLastMove = 10000L;
 	private long timeSinceLastGather = 10000L;
 	
-	private long moveCooldown = 400L; // default to wheel speed from RPC
-	private long gatherCooldown = 3400L; // default to gather speed from RPC
+	private long moveCooldown = 10000L;
+	private long gatherCooldown = 3430; // default to gather speed from RPC + 30
 	
+
 	
 	/**
 	 * Runs the client
@@ -92,14 +99,14 @@ public class ROVER_07 extends Rover {
 
 	public ROVER_07() {
 		// constructor
-		System.out.println("ROVER_07 rover object constructed");
-		rovername = "ROVER_07";
+		rovername = "ROVER_01"; // rover 1 is fasted used for testing
+		System.out.println(rovername + " rover object constructed");
 	}
 	
 	public ROVER_07(String serverAddress) {
 		// constructor
-		System.out.println("ROVER_07 rover object constructed");
-		rovername = "ROVER_07";
+		rovername = "ROVER_01"; // rover 1 is fasted used for testing
+		System.out.println(rovername + " rover object constructed");
 		SERVER_ADDRESS = serverAddress;
 	}
 	
@@ -130,9 +137,6 @@ public class ROVER_07 extends Rover {
 			// sets up the connections for sending and receiving text from the RCP
 			receiveFrom_RCP = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 			sendTo_RCP = new PrintWriter(socket.getOutputStream(), true);
-			
-			// Need to allow time for the connection to the server to be established
-			sleepTime = 300;
 			
 			/*
 			 * After the rover has requested a connection from the RCP
@@ -172,24 +176,25 @@ public class ROVER_07 extends Rover {
 			
 			// **** Request TARGET_LOC Location from SwarmServer ****
 			targetLocation = getTargetLocation();
+//			targetLocation = new Coord(20, 20);
 			System.out.println(rovername + " TARGET_LOC " + targetLocation);
 	        
+			searchStrategy = new AstarSearch(); // strategy used in pathfinding
+			
+	
 			
 			/**
 			 *  ### Setting up variables to be used in the Rover control loop ###
 			 *  add more as needed
 			 */
 	         
-	    	searchStrategy = new AstarSearch(); // strategy used in pathfinding
-	    	roverState = State.UPDATING_PATH; // rover start state is set to UPDATING_PATH
 	    	
+	    	
+			Graph graph = null; // graph created to search on
 	    	List<Edge> path = null; // path rover will take using searchStrategy and graph
-	    	
-	    	
-	    	int pathIndex = 0; // index of path to target
-	        Edge nextMove = null; // current edge from current -> next node in graph
-	        
-	        long startTime = 0; // start of loop time
+	        Edge nextMove = null; // edge containing from current -> next node in graph coord
+	        Coord finalTarget = null; // Coord used to get minerals on the way to a target not used yet
+	        long startTime = 0; // used to check how long  outer while loop takes
 	        
 	        
 			/**
@@ -203,31 +208,20 @@ public class ROVER_07 extends Rover {
 				startTime = System.currentTimeMillis();
 				
 				// **** Request Rover Location from RCP ****
-				currentLoc = getCurrentLocation();
-				System.out.println(rovername + " currentLoc at: " + currentLoc);
-				System.out.println(rovername + " targetLocation at: " + targetLocation);			
+				currentLoc = getCurrentLocation();			
 
 				// ***** do a SCAN *****
 				// gets the scanMap from the server based on the Rover current location
 				scanMap = doScan();
 				
-				
-//				if (scanMap.getScanMap()[3][6].getTerrain().equals(Terrain.NONE)) {
-//					xCornerScanned = currentLoc.xpos - 1;
-//				}
-//				if (scanMap.getScanMap()[3][6].getTerrain().equals(Terrain.NONE)) {
-//					yCornerScanned = currentLoc.ypos - 1;
-//				}
-				
 				// prints the scanMap to the Console output for debug purposes
 //				scanMap.debugPrintMap();
-				
+					
 				// ***** after doing a SCAN post scan data to the communication server ****
 				// This sends map data to the Communications server which stores it as a global map.
 	            // This allows other rover's to access a history of the terrain this rover has moved over.
 				
 				communication.postScanMapTiles(currentLoc, scanMap.getScanMap());
-//	            String postScanMapTilesResponse = communication.postScanMapTiles(currentLoc, scanMap.getScanMap());
 	     
 
 				// ***** get GlobalMap from server *****
@@ -235,10 +229,7 @@ public class ROVER_07 extends Rover {
 	            JSONArray getGlobalMapResponse = communication.getGlobalMap();
 	            System.out.println();
 	            
-//	            System.out.println("updating globalMap ...");
 	            globalMap = new PlanetMap(getGlobalMapResponse, currentLoc, targetLocation);
-	            
-//	            System.out.println("adding scan data to globalMap..");
 	            globalMap.addScanDataMissing(scanMap);
 	            System.out.println();
 	            
@@ -249,6 +240,9 @@ public class ROVER_07 extends Rover {
 	            // testing...
 //	            System.out.println(com.getAllRoverDetails());
 	            
+				System.out.println(rovername + " currentLoc at: " + currentLoc);
+				System.out.println(rovername + " targetLocation at: " + targetLocation);
+	            
 	            
 	            // Rover State Machine new states can be added with new cases with new State enums
 	            
@@ -256,111 +250,187 @@ public class ROVER_07 extends Rover {
 	            	
 	            	switch (roverState) {
 	            	
-					case FINDING_TARGET: // target selection
+	            	case EXPLORING:
+	            		
+	            		System.out.println("tiles to explore: " + unkownTiles().size());
+	            		
+	            		Coord unknownTile = closestUnknownTile();
+	            		
+	            		if (unknownTile!= null) {
+	            			
+	            			targetLocation = unknownTile;
+	            			
+	            			System.out.println("new target to explore found entering state UPDATING_PATH...");
+							roverState = State.UPDATING_PATH;
+	            		}
+	            		
+	            		
+	            		break;
+	            	
+					case FINDING_RESOURCE: // target selection
 						
 						Set<Coord> locations = tilesRoverCanGather(); // gathered tiles are not updated on server must fix or looping happens
+						locations = tilesRoverCanGather();
+						
+						System.out.println("known resources: " + locations);
+						
+						if (locations.size() == 0) { // no tiles you can gather
+							
+							System.out.println("map has no gatherable resources entering state EXPLORE...");
+							roverState = State.EXPLORING;
+							break;
+						}		
+						
+						
+						graph = new Graph(globalMap.getWidth(), globalMap.getHeight(), tilesRoverCanReach());
+						Map<Coord, List<Edge>> paths = new HashMap<Coord, List<Edge>>();
 						
 						List<Edge> newPath = null;
 						
-						Coord newTarget = null;
+						Iterator<Coord> locitor = locations.iterator();
+						Coord location = null;
 						
-						Graph graph = new  Graph(globalMap, tilesRoverCanReach());
-						
-						int maxLength = Integer.MAX_VALUE;
-						
-						for (Coord location: locations) {
+						while(locitor.hasNext()){
+							
+							location = locitor.next();
+							
+							System.out.println(location);
 							
 							newPath = findPath(graph, currentLoc, location);
 							
 							if (newPath != null) {
-								
-								if (newPath.size() < maxLength && newPath.size() > 0) {
-									
-									newTarget = location;
-									maxLength = newPath.size();
-									path = newPath;
-								}
+								if (newPath.get(0).getValue() != 0) {
+									paths.put(location, newPath);
+								}	
 							}
 						}
 						
-						targetLocation = newTarget;
-						pathIndex = 0;
+						int shortest = Integer.MAX_VALUE;
+						newPath = null;
+						Coord newTarget = null;
+						int temp = 0;
 						
+						Map.Entry<Coord, List<Edge>>  entry = null;
+						
+						Iterator<Entry<Coord, List<Edge>>> pathitor = paths.entrySet().iterator();
+						
+						while(pathitor.hasNext()){
+						
+							entry = pathitor.next();
+									
+							newTarget = entry.getKey();
+							temp = entry.getValue().size();
+							
+							System.out.print(temp + " ");
+							
+							if (temp < shortest) {	// map is not updated again until after this loop so must ignore size 1
+								
+								shortest = temp;
+								path = entry.getValue();
+								targetLocation = newTarget;
+							}
+							
+						}
+			
 						System.out.println("new gather target and path found entering state MOVING...");
 						roverState = State.MOVING;
-						
 						break;
 						
 					case UPDATING_PATH: // refreshes path if obstacle is found
 						
-						path = findPath(new Graph(globalMap, tilesRoverCanReach()), currentLoc, targetLocation);
-						pathIndex = 0;
+						Set<Coord> tiles = tilesRoverCanReach();
+						path = null;
 						
-						if (path != null) {
+						// makes sure target is in graph and try to find path
+						if (!tiles.contains(targetLocation)) {
+							graph = new  Graph(globalMap.getWidth(), globalMap.getHeight(), tiles);
+							path = findPath(graph, currentLoc, targetLocation);
+						}
+						
+						if (path == null) {
 							
-							System.out.println("path found entering state MOVING...");
-							roverState = State.MOVING;
+							System.out.println("target unreachable ");
+							
+							if (mode.equals(RoverMode.GATHER)) {
+								
+								System.out.println("rover mode is GATHER entering state FINDING_RESOURCE...");
+								roverState = State.FINDING_RESOURCE;
+							}
+							else {
+								
+								System.out.println("rover mode is EXPLORE entering state EXPLORING...");
+								roverState = State.EXPLORING;
+							}
 						}
 						else {
-							
-							System.out.println("path not found entering state MOVING...");
-							roverState = State.FINDING_TARGET;
+							System.out.println("path found entering state MOVING...");
+							roverState = State.MOVING;
 						}
 						break;
 						
 					case REACHED_TARGET: // what to do once target is reached
 						
-						Science sci = globalMap.getTile(currentLoc).getScience();
-						
-						if (!sci.equals(Science.NONE)) {
-						
-							System.out.println("location has attainable resources entering state GATHERING...");
-							roverState = State.GATHERING; // if has material that rover can pick up, needs new function
+						if (mode.equals(RoverMode.GATHER)){
+							
+							Science sci = globalMap.getTile(currentLoc).getScience();
+							System.out.print("rover mode is GATHER ");
+							
+							if (!sci.equals(Science.NONE)) {
+								
+								System.out.println("location has attainable resources entering state GATHERING...");
+								roverState = State.GATHERING; // if has material that rover can pick up, needs new function
+							}
+							else {
+								System.out.println("location has no attainable resources entering state FINDING_RESOURCE...");
+								roverState = State.FINDING_RESOURCE;
+							}
 						}
 						else {
 							
-							System.out.println("location has no attainable resources entering state FINDING_TARGET...");
-							roverState = State.FINDING_TARGET;
+							System.out.println("rover mode is EXPLORE entering state EXPLORING...");
+							roverState = State.EXPLORING;
 						}
 						break;
 		
 					case GATHERING: // gathering steps
 						
-						System.out.println(gatherCooldownRemaining(gatherCooldown));
+						Thread.sleep(gatherCooldownRemaining(gatherCooldown));
 						
-						if (gatherCooldownRemaining(gatherCooldown) > 3400)
-							Thread.sleep(0);
-						else Thread.sleep(gatherCooldownRemaining(gatherCooldown));
-					
 						gatherScience(currentLoc);
+						
+						globalMap.getTile(currentLoc).setScience(Science.NONE);
 						
 						resetGatherCooldown();
 						
-						System.out.println("gathering complete entering state FINDING_TARGET...");
-						roverState = State.FINDING_TARGET;
+						System.out.println("gathering complete entering state FINDING_RESOURCE...");
+						roverState = State.FINDING_RESOURCE;
 						
 						break;
 						
 					case MOVING: // governs how rover moves along path
 						
-						if (pathIndex == path.size()) {
+						if (reachedTarget(path, targetLocation)) {
 							
 							System.out.println("reached target entering state REACHED_TARGET...");
 							roverState = State.REACHED_TARGET;
 							break;
 						}
 						
-						nextMove = path.get(pathIndex);
+						// get next move uses current location and a path
+						nextMove = getNexMove(path);
 						
+						// check is next tile has an obstacle
+						// this is useful for pathing to unkown tiles or rovers
 						if (canMoveTo(nextMove)) {
 							
+							// sleep until move cooldown is over
 							Thread.sleep(moveCooldownRemaining(moveCooldown));
 							
+							// move to tile
 							move(nextMove);
 							
+							// resets move cooldown after move
 							resetMoveCooldown();
-							
-							pathIndex++;
 							
 							System.out.println("moved to next MapTile entering state MOVING...");
 							roverState = State.MOVING;
@@ -373,16 +443,11 @@ public class ROVER_07 extends Rover {
 						break;
 					}
 	            	
-	            } while (roverState != State.MOVING && roverState != State.GATHERING);
+	            } while (roverState != State.MOVING);
 	            
 	            timeRemaining = getTimeRemaining();
+				System.out.println(rovername + " ------------ END PROCESS CONTROLL LOOP -----TIME: " + (System.currentTimeMillis() - startTime));
 
-				System.out.println("loop time : " + (System.currentTimeMillis() - startTime));
-				System.out.println("ROVER_07 ------------ end process control loop --------------");
-				System.out.print("\n\n\n\n\n");
-				
-				timeSinceLastMove = System.currentTimeMillis() ;
-				
 				// this is the Rover's HeartBeat, it regulates how fast the Rover cycles through the control loop
 				// ***** get TIMER time remaining *****
 				
@@ -396,7 +461,7 @@ public class ROVER_07 extends Rover {
 	            try {
 	            	socket.close();
 	            } catch (IOException e) {
-	            	System.out.println("ROVER_07 problem closing socket");
+	            	System.out.println(rovername + " problem closing socket");
 	            }
 	        }
 	    }
@@ -412,13 +477,13 @@ public class ROVER_07 extends Rover {
 	// sends move command to RPC to move to next position on path
 	private void move(Edge edge) {
 
-		NodeData current = (NodeData)edge.getFrom().getData();
-		NodeData next = (NodeData)edge.getTo().getData();
+		Coord current = (Coord)edge.getFrom().getData();
+		Coord next = (Coord)edge.getTo().getData();
 		
-		if (current.getX() < next.getX()) moveEast();
-		if (current.getX() > next.getX()) moveWest();
-		if (current.getY() < next.getY()) moveSouth();
-		if (current.getY() > next.getY()) moveNorth();
+		if (current.xpos < next.xpos) moveEast();
+		if (current.xpos > next.xpos) moveWest();
+		if (current.ypos < next.ypos) moveSouth();
+		if (current.ypos > next.ypos) moveNorth();
 	}
 	
 	// checks if next position on graph is blocked by a rover or a Terrain rover cannot walk on
@@ -426,13 +491,32 @@ public class ROVER_07 extends Rover {
 	// paths unless tile is an obstacle
 	private boolean canMoveTo(Edge nextMove) {
 		
-		NodeData nextMoveToData = (NodeData)nextMove.getTo().getData();
-		MapTile nextMoveGobalTile = globalMap.getTile(nextMoveToData.getX(), nextMoveToData.getY());
+		Coord currentCoord = (Coord)nextMove.getFrom().getData();
+		
+		Coord nextCoord = (Coord)nextMove.getTo().getData();
+		MapTile nextMoveGobalTile = globalMap.getTile(nextCoord);
 		
 		boolean nextHasRover = nextMoveGobalTile.getHasRover();
 		String nextTerrain = nextMoveGobalTile.getTerrain().getTerString();
 		
 		return (!nextHasRover && drivableTerrain.contains(nextTerrain));
+	}
+	
+	private Edge getNexMove(List<Edge> path) {
+		
+		for (Edge edge: path) {
+			
+			if(((Coord)edge.getFrom().getData()).equals(currentLoc)) {
+				return edge;
+			}
+		}
+		return null;
+	}
+	
+	// passed target to allow to use in waypoints
+	private boolean reachedTarget(List<Edge> path, Coord target) {
+		
+		return ((Coord)path.get(path.size() - 1).getTo().getData()).equals(target);
 	}
 	
 	private long gatherCooldownRemaining(long cooldown) {
@@ -474,9 +558,12 @@ public class ROVER_07 extends Rover {
 	// using globalMap. globalMap is updated every loop
 	private List<Edge> findPath(Graph graph , Coord from, Coord to) {
 		
-		Node fromNode = graph.getNode(new Node(new NodeData(globalMap, from))).get();
+		Node fromNode = graph.getNode(new Node<>(from));
 			
-		Node toNode = graph.getNode(new Node(new NodeData(globalMap, to))).get();
+		
+		Node toNode = graph.getNode(new Node<>(to));
+
+		
 
 		return searchStrategy.search(graph, fromNode, toNode);	
 	}
@@ -487,7 +574,7 @@ public class ROVER_07 extends Rover {
 		switch (drive) {
 		
 		case WALKER:
-			drivableTerrain.add(Terrain.NONE.getTerString()); 
+			drivableTerrain.add(Terrain.UNKNOWN.getTerString()); 
 			drivableTerrain.add(Terrain.SOIL.getTerString());
 			drivableTerrain.add(Terrain.GRAVEL.getTerString());
 			
@@ -496,12 +583,19 @@ public class ROVER_07 extends Rover {
 			break;
 			
 		case TREADS:
-			drivableTerrain.add(Terrain.NONE.getTerString()); 
+			drivableTerrain.add(Terrain.UNKNOWN.getTerString()); 
 			drivableTerrain.add(Terrain.SOIL.getTerString());
 			drivableTerrain.add(Terrain.GRAVEL.getTerString());
 			
 			drivableTerrain.add(Terrain.SAND.getTerString());
 			moveCooldown = 900;
+			break;
+			
+		case WHEELS:
+			drivableTerrain.add(Terrain.UNKNOWN.getTerString()); 
+			drivableTerrain.add(Terrain.SOIL.getTerString());
+			drivableTerrain.add(Terrain.GRAVEL.getTerString());
+			moveCooldown = 400;
 			break;
 			
 		default:
@@ -570,12 +664,61 @@ public class ROVER_07 extends Rover {
 			tile = entry.getValue();
 			terrain = tile.getTerrain().getTerString();
 			
-			if(drivableTerrain.contains(terrain)) {
+			if(drivableTerrain.contains(terrain) && !tile.getHasRover()) {
 				
 				canWalkOn.add(coord);
 			}
 		}
 		
 		return canWalkOn;
+	}
+	
+private Coord closestUnknownTile() {
+	
+	Coord closestCoord = null;
+	Coord coord = null;
+	int distance = 0;
+	
+	Iterator<Coord> tileItor = unkownTiles().iterator();
+	
+	int closestDistance = Integer.MAX_VALUE;
+	
+	while(tileItor.hasNext()) {
+		
+		coord = tileItor.next();
+		distance = Math.abs(currentLoc.xpos - coord.xpos) + Math.abs(currentLoc.ypos - coord.ypos);
+		
+		if (distance < closestDistance) {
+			
+			closestDistance = distance;
+			closestCoord = coord;
+		}	
+	}
+	
+	return closestCoord;
+}
+	
+private Set<Coord> unkownTiles() {
+		
+		Set<Coord> uknownTiles = new HashSet<>();
+		Map<Coord, MapTile> tiles = globalMap.getAllTiles();
+		
+		Coord coord;
+		MapTile tile;
+		String terrain;
+		
+		for (Map.Entry<Coord, MapTile> entry : tiles.entrySet()) {
+			
+			coord = entry.getKey();
+			tile = entry.getValue();
+			terrain = tile.getTerrain().getTerString();
+			
+			if(terrain.equals(Terrain.UNKNOWN.getTerString())) {
+				
+				uknownTiles.add(coord);
+			}
+		}
+		
+		return uknownTiles;
 	}
 }
