@@ -102,13 +102,13 @@ public class ROVER_07 extends Rover {
 
 	public ROVER_07() {
 		// constructor
-		rovername = "ROVER_01"; // rover 1 is fasted used for testing
+		rovername = "ROVER_07"; // rover 1 is fasted used for testing
 		System.out.println(rovername + " rover object constructed");
 	}
 	
 	public ROVER_07(String serverAddress) {
 		// constructor
-		rovername = "ROVER_01"; // rover 1 is fasted used for testing
+		rovername = "ROVER_07"; // rover 1 is fasted used for testing
 		System.out.println(rovername + " rover object constructed");
 		SERVER_ADDRESS = serverAddress;
 	}
