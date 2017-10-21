@@ -477,7 +477,7 @@ public class Rover {
 			MapTile[][] scanMapTiles = scanMap.getScanMap();
 //			Communication communication = new Communication(
 //					"http://localhost:3000/api", rovername, "open_secret"); // commented out
-			communication.postScanMapTiles(currentLoc, scanMapTiles); //TODO add a way to add the new scans data to it , sensors on rover
+			communication.postScanMapTiles(currentLoc, scanMapTiles);
 		} catch (Exception e) {
 			e.printStackTrace();
 			System.err.println(
