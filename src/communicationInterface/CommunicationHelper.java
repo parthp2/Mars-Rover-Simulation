@@ -12,9 +12,14 @@ import enums.Terrain;
 public class CommunicationHelper {
 
     public static MapTile convertToMapTile(JSONObject o){
-        Terrain terrain = getTerrain((String) o.get("terrain"));
+        
+    	Terrain terrain = getTerrain((String) o.get("terrain"));
         Science science = getScience((String) o.get("science"));
+        
         MapTile tile = new MapTile(terrain, science, false);
+        
+        tile.setScannedBySensor((String) o.get("scanned"));
+        
         return tile;
     }
 
@@ -76,6 +81,4 @@ public class CommunicationHelper {
         }
         return output;
     }
-
-
 }

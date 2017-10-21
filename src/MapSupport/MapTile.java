@@ -1,5 +1,9 @@
 package MapSupport;
 
+import java.util.HashSet;
+import java.util.Set;
+
+import enums.RoverToolType;
 import enums.Science;
 import enums.Terrain;
 
@@ -10,6 +14,7 @@ public class MapTile {
 	private Science science;	//for use on ScanMap, not used on PlanetMap
 	private boolean hasRover;	//for use on ScanMap, not used on PlanetMap
 	private String scannedBy = null; //for keeping track of which rover first discovered this tile
+	String scannedBySensor = "0000"; // digits from left to right are Chemical,Radar,Radiation,Spectral
 	
 	public MapTile(){
 		this.terrain = Terrain.SOIL;
@@ -83,8 +88,43 @@ public class MapTile {
 		return this.hasRover;
 	}
 	
-	public String getScannedBy() {
-		return this.scannedBy;
+	public String getScannedBySensorValue() {
+		return this.scannedBySensor;
+	}
+	
+	public void setScannedBySensor(String sensors) {
+		
+		char[] sensorsToAdd = sensors.toCharArray();
+		char[] currentSensors = scannedBySensor.toCharArray();
+		
+		// checks for correct length
+		if (sensorsToAdd.length != 4) return;
+		
+		// checks for correct format
+		for(char c: sensorsToAdd) {
+			if (!(c == '0' || c == '1')) return;
+		}
+		
+		for(int i = 0; i < scannedBySensor.length(); i++) {
+			if (sensorsToAdd[i] == '1') currentSensors[i] = '1';
+		}
+		
+		scannedBySensor = currentSensors.toString();
+	}
+	
+	public Set<RoverToolType> getScannedBySensors() {
+		
+		Set<RoverToolType> sensors = new HashSet<RoverToolType>();
+		
+		char[] values = this.scannedBySensor.toCharArray();
+		
+		// order is Chemical,Radar,Radiation,Spectral
+		if (values[0] == '1') sensors.add(RoverToolType.CHEMICAL_SENSOR);
+		if (values[1] == '1') sensors.add(RoverToolType.RADAR_SENSOR);
+		if (values[2] == '1') sensors.add(RoverToolType.RADIATION_SENSOR);
+		if (values[3] == '1') sensors.add(RoverToolType.SPECTRAL_SENSOR);
+		
+		return sensors;
 	}
 	
 	// well, this might have broke the thread safe rule

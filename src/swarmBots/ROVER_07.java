@@ -19,7 +19,7 @@ import org.json.simple.JSONArray;
 import MapSupport.Coord;
 import MapSupport.MapTile;
 import MapSupport.PlanetMap;
-
+import MapSupport.ScanMap;
 import common.Rover;
 
 import communicationInterface.Communication;
@@ -68,6 +68,7 @@ public class ROVER_07 extends Rover {
 	private SearchStrategy searchStrategy = new AstarSearch(); // the search that we are using to find paths on graph
 	private Set<String> drivableTerrain = new HashSet<String>(); // the terrain rover can drive on
 	private Set<String> gatherableTerrain = new HashSet<String>(); // the terrain rover can gather on
+	private Set<String> sensors = new HashSet<String>(); 
 	
 	private RoverMode mode = RoverMode.GATHER; // start mode          GATHER, EXPLORE
 	private State roverState = State.UPDATING_PATH; // start state    UPDATING_PATH, EXPLORING, FINDING_RESOURCE, GATHERING, MOVING, REACHED_TARGET
@@ -164,10 +165,9 @@ public class ROVER_07 extends Rover {
 			equipment = getEquipment();
 			System.out.println(rovername + " equipment list results " + equipment + "\n");
 			
-			// look for drive type and sets drivable terrain and gatherable list used in searching
-			for(String equip: equipment) {
-					setDrivableTerrain(RoverDriveType.getEnum(equip));
-					setGatherableTerrain(RoverToolType.getEnum(equip));
+			// seperates the elements of list into more useful subgroups used below
+			for(String part: equipment) {
+					setEquipment(part);
 			}
 			
 			// **** Request START_LOC Location from SwarmServer **** this might be dropped as it should be (0, 0)
@@ -577,7 +577,16 @@ public class ROVER_07 extends Rover {
 		return searchStrategy.search(graph, fromNode, toNode);	
 	}
 	
-	// sets terrain rover can drive on used in SearchStrategy used once before the loop
+	
+	// sets all equipment
+	private void setEquipment(String part) {
+
+		setDrivableTerrain(RoverDriveType.getEnum(part));
+		setGatherableTerrain(RoverToolType.getEnum(part));
+		setSensors(RoverToolType.getEnum(part));
+	}
+	
+	
 	private void setDrivableTerrain(RoverDriveType drive) {
 		
 		switch (drive) {
@@ -627,6 +636,31 @@ public class ROVER_07 extends Rover {
 			gatherableTerrain.add(Terrain.GRAVEL.getTerString());
 			break;
 			
+		default:
+			break;
+		}
+	}
+	
+	private void setSensors(RoverToolType tool) {
+		// all types can traverse these
+		
+		switch (tool) {
+		
+		case CHEMICAL_SENSOR:
+			sensors.add("CHEMICAL_SENSOR");
+			break;
+			
+		case RADAR_SENSOR:
+			sensors.add("RADAR_SENSOR");
+			break;
+			
+		case RADIATION_SENSOR:
+			sensors.add("RADIATION_SENSOR");
+			break;
+			
+		case SPECTRAL_SENSOR:
+			sensors.add("SPECTRAL_SENSOR");
+			break;
 		default:
 			break;
 		}
@@ -730,4 +764,19 @@ private Set<Coord> unkownTiles() {
 		
 		return uknownTiles;
 	}
+
+private void addScannedDataToScanMap(ScanMap scanMap) {
+	
+	MapTile[][] mapTiles = scanMap.getScanMap();
+	
+	for(int j = 0; j < mapTiles.length; j++) {
+		for(int i = 0; i < mapTiles[0].length; i++) {
+			
+			//TODO mutate scan map to add let so that when this is uploaded
+			//it lets other rovers know that this has been scanned by a particular sensor
+			mapTiles[i][j].setScannedBySensor("1111");
+		}
+	}
+	
+}
 }
