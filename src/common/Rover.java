@@ -5,7 +5,10 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
@@ -15,6 +18,7 @@ import com.google.gson.reflect.TypeToken;
 
 import MapSupport.Coord;
 import MapSupport.MapTile;
+import MapSupport.PlanetMap;
 import MapSupport.ScanMap;
 import communicationInterface.Communication;
 import communicationInterface.RoverDetail;
@@ -31,18 +35,23 @@ public class Rover {
 	// setup the RoverCommandProcessor links
 	protected BufferedReader receiveFrom_RCP;
 	protected PrintWriter sendTo_RCP;
+	
+	//  made communication a rover variable so it does not need to be created over and over
+	public Communication communication;
 
 	public String rovername;
+	
 	public ScanMap scanMap;
+	public PlanetMap globalMap;
+	
 	public int sleepTime;
 	public String SERVER_ADDRESS = "localhost"; //default value
-	public String timeRemaining;
-	public Coord currentLoc = null;
-	public Coord previousLoc = null;
-	public Coord startLocation = null;
-	public Coord targetLocation = null;
-
-	public ArrayList<String> equipment = new ArrayList<String>();
+	public int timeRemaining;
+	public Coord currentLoc;
+	public Coord previousLoc;
+	public Coord startLocation;
+	public Coord targetLocation;
+	public ArrayList<String> equipment;
 
 	// Hardcoded port number for the CS-5337 class
 	protected static final int PORT_ADDRESS = 9537;
@@ -113,7 +122,7 @@ public class Rover {
 		}
 	}
 
-	protected String getTimeRemaining() throws IOException {
+	protected int getTimeRemaining() throws IOException {
 		String line;
 		String timeRemaining = null;
 		sendTo_RCP.println("TIMER");
@@ -126,7 +135,7 @@ public class Rover {
 			timeRemaining = line.substring(6);
 			System.out.println(rovername + " timeRemaining: " + timeRemaining);
 		}
-		return timeRemaining;
+		return Integer.parseInt(timeRemaining);
 	}
 
 	// method to retrieve a list of this particular rover's EQUIPMENT from the server
@@ -164,6 +173,7 @@ public class Rover {
 				}.getType());
 		return returnList;
 	}
+	
 
 	// sends a SCAN request to the server and puts the result in the scanMap
 	// array
@@ -213,6 +223,9 @@ public class Rover {
 		}
 		return null;
 	}
+	
+	
+	
 
 	
 	
@@ -226,8 +239,8 @@ public class Rover {
 
 		ScienceDetail minDistanceScienceDetail = null;
 		try {
-			Communication communication = new Communication(
-					"http://localhost:3000/api", rovername, "open_secret");
+//			Communication communication = new Communication(
+//					"http://localhost:3000/api", rovername, "open_secret");
 
 			ScienceDetail[] scienceDetails = communication
 					.getAllScienceDetails();
@@ -459,9 +472,11 @@ public class Rover {
 
 		try {
 			Coord currentLoc = getCurrentLocation();
-			MapTile[][] scanMapTiles = doScan().getScanMap();
-			Communication communication = new Communication(
-					"http://localhost:3000/api", rovername, "open_secret");
+			// changed to line below, previous caused an extra request
+//			MapTile[][] scanMapTiles = doScan().getScanMap(); 
+			MapTile[][] scanMapTiles = scanMap.getScanMap();
+//			Communication communication = new Communication(
+//					"http://localhost:3000/api", rovername, "open_secret"); // commented out
 			communication.postScanMapTiles(currentLoc, scanMapTiles);
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -493,8 +508,8 @@ public class Rover {
 					.valueOf(roverConfiguration.getMembers().get(2));
 			roverDetail.setToolType2(tollType2);
 
-			Communication communication = new Communication(
-					"http://localhost:3000/api", rovername, "open_secret");
+//			Communication communication = new Communication(
+//					"http://localhost:3000/api", rovername, "open_secret");
 			communication.sendRoverDetail(roverDetail);
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -507,8 +522,8 @@ public class Rover {
 	protected RoverDetail[] getAllRoverDetails() {
 
 		try {
-			Communication communication = new Communication(
-					"http://localhost:3000/api", rovername, "open_secret");
+//			Communication communication = new Communication(
+//					"http://localhost:3000/api", rovername, "open_secret");
 			return communication.getAllRoverDetails();
 		} catch (Exception e) {
 			System.err.println(
@@ -521,8 +536,8 @@ public class Rover {
 	protected void gatherScience(Coord coord) {
 
 		try {
-			Communication communication = new Communication(
-					"http://localhost:3000/api", rovername, "open_secret");
+//			Communication communication = new Communication(
+//					"http://localhost:3000/api", rovername, "open_secret");
 			communication.markScienceForGather(coord);
 			sendTo_RCP.println("GATHER");
 		} catch (Exception e) {
