@@ -166,9 +166,9 @@ public class ROVER_07 extends Rover {
 			System.out.println(rovername + " equipment list results " + equipment + "\n");
 			
 			// seperates the elements of list into more useful subgroups used below
-			for(String part: equipment) {
-					setEquipment(part);
-			}
+			// 
+			setEquipment(equipment);
+		
 			
 			// **** Request START_LOC Location from SwarmServer **** this might be dropped as it should be (0, 0)
 			// 
@@ -217,6 +217,8 @@ public class ROVER_07 extends Rover {
 				// gets the scanMap from the server based on the Rover current location
 				scanMap = doScan();
 				
+				
+				addScannedDataToScanMap(scanMap);
 				// prints the scanMap to the Console output for debug purposes
 //				scanMap.debugPrintMap();
 					
@@ -230,7 +232,7 @@ public class ROVER_07 extends Rover {
 				// ***** get GlobalMap from server *****
 				// gets the GlobalMap from the server to and update its local map for pathing/searching
 	            JSONArray getGlobalMapResponse = communication.getGlobalMap();
-	            System.out.println();
+	            System.out.println(getGlobalMapResponse);
 	            
 	            globalMap = new PlanetMap(getGlobalMapResponse, currentLoc, targetLocation);
 	            globalMap.addScanDataMissing(scanMap);
@@ -248,7 +250,7 @@ public class ROVER_07 extends Rover {
 				
 				System.out.println("resources " + rovername + " tiles in map:" + globalMap.getAllTiles().size());
 				System.out.println("resources " + rovername + " can gather: " + tilesRoverCanGather().size());
-				System.out.println("resources " + rovername + " can reach: " + tilesRoverCanReach().size());
+				System.out.println("resources " + rovername + " can reach: " + tilesRoverCanWalkOn().size());
 				System.out.println("resources " + rovername + " can explore: " + unkownTiles().size());
 	            
 	            
@@ -294,7 +296,7 @@ public class ROVER_07 extends Rover {
 						}		
 						
 						
-						graph = new Graph(globalMap.getWidth(), globalMap.getHeight(), tilesRoverCanReach());
+						graph = new Graph(globalMap.getWidth(), globalMap.getHeight(), tilesRoverCanWalkOn());
 						Map<Coord, List<Edge>> paths = new HashMap<Coord, List<Edge>>();
 						
 						List<Edge> newPath = null;
@@ -348,7 +350,7 @@ public class ROVER_07 extends Rover {
 						
 					case UPDATING_PATH: // refreshes path if obstacle is found
 						
-						Set<Coord> tiles = tilesRoverCanReach();
+						Set<Coord> tiles = tilesRoverCanWalkOn();
 						path = null;
 						
 						if (tiles.contains(targetLocation)) {
@@ -380,6 +382,7 @@ public class ROVER_07 extends Rover {
 						
 					case REACHED_TARGET: // what to do once target is reached
 						
+						// testing out mode might remove later right now is just set to gather
 						if (mode.equals(RoverMode.GATHER)){
 							
 							Science sci = globalMap.getTile(currentLoc).getScience();
@@ -404,12 +407,16 @@ public class ROVER_07 extends Rover {
 		
 					case GATHERING: // gathering steps
 						
+						// sleep until gather cooldown is over
 						Thread.sleep(gatherCooldownRemaining(gatherCooldown));
 						
+						// gather tile command sent to RPC and removed, this will also remove from server
 						gatherScience(currentLoc);
 						
+						// this is just to remove tile from other lists you will generate
 						globalMap.getTile(currentLoc).setScience(Science.NONE);
 						
+						// reset gather cooldown
 						resetGatherCooldown();
 						
 						System.out.println("gathering complete entering state FINDING_RESOURCE...");
@@ -503,9 +510,7 @@ public class ROVER_07 extends Rover {
 	// this is useful because a rover will be able to path to unexplored MapTiles and will not change
 	// paths unless tile is an obstacle
 	private boolean canMoveTo(Edge nextMove) {
-		
-		Coord currentCoord = (Coord)nextMove.getFrom().getData();
-		
+
 		Coord nextCoord = (Coord)nextMove.getTo().getData();
 		MapTile nextMoveGobalTile = globalMap.getTile(nextCoord);
 		
@@ -526,12 +531,13 @@ public class ROVER_07 extends Rover {
 		return null;
 	}
 	
-	// passed target to allow to use in waypoints
+	// wrapper for coord equals method but makes it more readable in State machine
 	private boolean reachedTarget(Coord current, Coord target) {
 		
 		return current.equals(target);
 	}
 	
+	// time until RCP will accept another gather
 	private long gatherCooldownRemaining(long cooldown) {
 	
 		long remaindingTime =  cooldown - (System.currentTimeMillis() - timeSinceLastGather);
@@ -544,11 +550,14 @@ public class ROVER_07 extends Rover {
 		return remaindingTime;
 	}
 	
+	// resets gather cooldown
 	private void resetGatherCooldown() {
 		
 		timeSinceLastGather = System.currentTimeMillis();
 	}
 	
+	
+	// time until RCP will accept another move
 	private long moveCooldownRemaining(long cooldown) {
 
 		long remaindingTime =  cooldown - (System.currentTimeMillis() - timeSinceLastMove);
@@ -561,6 +570,7 @@ public class ROVER_07 extends Rover {
 		return remaindingTime;
 	}
 	
+	// resets move cooldown
 	private void resetMoveCooldown() {
 		
 		timeSinceLastMove = System.currentTimeMillis();
@@ -578,15 +588,19 @@ public class ROVER_07 extends Rover {
 	}
 	
 	
-	// sets all equipment
-	private void setEquipment(String part) {
+	// sets all equipment to correct Set of Strings. these Sets are used in many other functions
+	// functions that use this are tilesRoverCanGather, tilesRoverCanWalkOn, tilesSensorsCanScan
+	// closestUnknownTile, 	addScannedDataToScanMap, sensorsToString
+	private void setEquipment(List<String> parts) {
 
-		setDrivableTerrain(RoverDriveType.getEnum(part));
-		setGatherableTerrain(RoverToolType.getEnum(part));
-		setSensors(RoverToolType.getEnum(part));
+		for(String part: parts) {
+			setDrivableTerrain(RoverDriveType.getEnum(part));
+			setGatherableTerrain(RoverToolType.getEnum(part));
+			setSensors(RoverToolType.getEnum(part));
+		}	
 	}
 	
-	
+	// helper function for setEquipment method
 	private void setDrivableTerrain(RoverDriveType drive) {
 		
 		switch (drive) {
@@ -621,6 +635,7 @@ public class ROVER_07 extends Rover {
 		}
 	}
 	
+	// helper function for setEquipment method
 	private void setGatherableTerrain(RoverToolType tool) {
 		// all types can traverse these
 		
@@ -641,6 +656,7 @@ public class ROVER_07 extends Rover {
 		}
 	}
 	
+	// helper function for setEquipment method
 	private void setSensors(RoverToolType tool) {
 		// all types can traverse these
 		
@@ -666,9 +682,10 @@ public class ROVER_07 extends Rover {
 		}
 	}
 	
+	// tiles rover can navigate on and has tools to gather
 	private Set<Coord> tilesRoverCanGather() {
 		
-		Set<Coord> canWalkOnWithResources = tilesRoverCanReach();
+		Set<Coord> canWalkOnWithResources = tilesRoverCanWalkOn();
 		Set<Coord> canGatherOn = new HashSet<Coord>();
 		
 		MapTile tile = null;
@@ -692,7 +709,8 @@ public class ROVER_07 extends Rover {
 		return canGatherOn;
 	}
 	
-	private Set<Coord> tilesRoverCanReach() {
+	// tiles rover can navigate on
+	private Set<Coord> tilesRoverCanWalkOn() {
 		
 		Set<Coord> canWalkOn = new HashSet<>();
 		Map<Coord, MapTile> tiles = globalMap.getAllTiles();
@@ -716,32 +734,34 @@ public class ROVER_07 extends Rover {
 		return canWalkOn;
 	}
 	
-private Coord closestUnknownTile() {
-	
-	Coord closestCoord = null;
-	Coord coord = null;
-	int distance = 0;
-	
-	Iterator<Coord> tileItor = unkownTiles().iterator();
-	
-	int closestDistance = Integer.MAX_VALUE;
-	
-	while(tileItor.hasNext()) {
+	//TODO rewrite to make more robust, should get you the best next Unkown tile to explore
+	private Coord closestUnknownTile() {
 		
-		coord = tileItor.next();
-		distance = Math.abs(currentLoc.xpos - coord.xpos) + Math.abs(currentLoc.ypos - coord.ypos);
+		Coord closestCoord = null;
+		Coord coord = null;
+		int distance = 0;
 		
-		if (distance < closestDistance) {
+		Iterator<Coord> tileItor = unkownTiles().iterator();
+		
+		int closestDistance = Integer.MAX_VALUE;
+		
+		while(tileItor.hasNext()) {
 			
-			closestDistance = distance;
-			closestCoord = coord;
-		}	
-	}
+			coord = tileItor.next();
+			distance = Math.abs(currentLoc.xpos - coord.xpos) + Math.abs(currentLoc.ypos - coord.ypos);
+			
+			if (distance < closestDistance) {
+				
+				closestDistance = distance;
+				closestCoord = coord;
+			}	
+		}
+		
+		return closestCoord;
+	}	
 	
-	return closestCoord;
-}
-	
-private Set<Coord> unkownTiles() {
+	// all tiles that have not been scanned at all, yet to be explored
+	private Set<Coord> unkownTiles() {
 		
 		Set<Coord> uknownTiles = new HashSet<>();
 		Map<Coord, MapTile> tiles = globalMap.getAllTiles();
@@ -764,19 +784,64 @@ private Set<Coord> unkownTiles() {
 		
 		return uknownTiles;
 	}
+	
+	// all tiles that are scannable by this rover, this includes all types of terrain
+	private Set<Coord> tilesSensorsCanScan() {
+		
+		Set<Coord> tilesSensorsCanScan = new HashSet<>();
+		Map<Coord, MapTile> tiles = globalMap.getAllTiles();
+		
+		Set<String> scannedBy;
+		
+		Coord coord;
+		MapTile tile;
+		
+		for (Map.Entry<Coord, MapTile> entry : tiles.entrySet()) {
+			
+			coord = entry.getKey();
+			tile = entry.getValue();
+			
+			scannedBy = tile.getScannedBySensors();
+			
+			for (String sensor: sensors) {
+				
+				if(scannedBy.contains(sensor)) {
+					
+					tilesSensorsCanScan.add(coord);
+					break;
+				}
+			}
+		}
+		
+		return tilesSensorsCanScan;
+	}
 
+	// adds scanning data to scanMap
 	private void addScannedDataToScanMap(ScanMap scanMap) {
 		
 		MapTile[][] mapTiles = scanMap.getScanMap();
 		
 		for(int j = 0; j < mapTiles.length; j++) {
 			for(int i = 0; i < mapTiles[0].length; i++) {
-				
-				//TODO mutate scan map to add let so that when this is uploaded
-				//it lets other rovers know that this has been scanned by a particular sensor
-				mapTiles[i][j].setScannedBySensor("1111");
+
+				mapTiles[i][j].setScannedBySensor(sensorsToString());
 			}
 		}	
+	}
+	
+	// used in method above
+	private String sensorsToString() {
+		
+		char[] sensorArray = {'0','0','0','0'};
+		
+		if (sensors.contains("CHEMICAL_SENSOR")) sensorArray[0] = '1';
+		if (sensors.contains("RADAR_SENSOR")) sensorArray[1] = '1';
+		if (sensors.contains("RADIATION_SENSOR")) sensorArray[2] = '1';
+		if (sensors.contains("SPECTRAL_SENSOR")) sensorArray[3] = '1';
+		
+		System.out.println(new String(sensorArray));
+		
+		return new String(sensorArray);
 	}
 	
 }

@@ -113,6 +113,7 @@ public class Communication {
                 tile.put("y", yp);
                 tile.put("terrain", mapTile.getTerrain().toString());
                 tile.put("science", mapTile.getScience().toString());
+                tile.put("scanned", mapTile.getScannedBySensorValue());
                 tiles.add(tile);
             }
         }

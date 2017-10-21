@@ -14,7 +14,7 @@ public class MapTile {
 	private Science science;	//for use on ScanMap, not used on PlanetMap
 	private boolean hasRover;	//for use on ScanMap, not used on PlanetMap
 	private String scannedBy = null; //for keeping track of which rover first discovered this tile
-	String scannedBySensor = "0000"; // digits from left to right are Chemical,Radar,Radiation,Spectral
+	private String scannedBySensor = "0000"; // digits from left to right are Chemical,Radar,Radiation,Spectral
 	
 	public MapTile(){
 		this.terrain = Terrain.SOIL;
@@ -109,20 +109,20 @@ public class MapTile {
 			if (sensorsToAdd[i] == '1') currentSensors[i] = '1';
 		}
 		
-		scannedBySensor = currentSensors.toString();
+		scannedBySensor = new String(currentSensors);
 	}
 	
-	public Set<RoverToolType> getScannedBySensors() {
+	public Set<String> getScannedBySensors() {
 		
-		Set<RoverToolType> sensors = new HashSet<RoverToolType>();
+		Set<String> sensors = new HashSet<String>();
 		
 		char[] values = this.scannedBySensor.toCharArray();
 		
 		// order is Chemical,Radar,Radiation,Spectral
-		if (values[0] == '1') sensors.add(RoverToolType.CHEMICAL_SENSOR);
-		if (values[1] == '1') sensors.add(RoverToolType.RADAR_SENSOR);
-		if (values[2] == '1') sensors.add(RoverToolType.RADIATION_SENSOR);
-		if (values[3] == '1') sensors.add(RoverToolType.SPECTRAL_SENSOR);
+		if (values[0] == '1') sensors.add("CHEMICAL_SENSOR");
+		if (values[1] == '1') sensors.add("RADAR_SENSOR");
+		if (values[2] == '1') sensors.add("RADIATION_SENSOR");
+		if (values[3] == '1') sensors.add("SPECTRAL_SENSOR");
 		
 		return sensors;
 	}
