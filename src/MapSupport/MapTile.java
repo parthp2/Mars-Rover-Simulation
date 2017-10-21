@@ -1,6 +1,5 @@
 package MapSupport;
 
-import enums.RoverConfiguration;
 import enums.Science;
 import enums.Terrain;
 
@@ -20,7 +19,7 @@ public class MapTile {
 	
 	public MapTile(int notUsed){
 		// use any integer as an argument to create MapTile with no terrain
-		this.terrain = Terrain.NONE;
+		this.terrain = Terrain.UNKNOWN;
 		this.science = Science.NONE;
 		this.hasRover = false;
 	}
