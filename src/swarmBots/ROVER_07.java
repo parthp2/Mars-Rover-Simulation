@@ -131,7 +131,7 @@ public class ROVER_07 extends Rover {
 			
 	        // **** Define the communication parameterspost message and open a connection to the 
 			// SwarmCommunicationServer restful service through the Communication.java class interface
-	        String url = "http://localhost:3000/api"; // <----------------------  this will have to be changed if multiple servers are needed
+	        String url = "http://localhost:3742/api"; // <----------------------  this will have to be changed if multiple servers are needed
 	        String corp_secret = "gz5YhL70a2"; // not currently used - for future implementation
 	        communication = new Communication(url, rovername, corp_secret);
 		       
