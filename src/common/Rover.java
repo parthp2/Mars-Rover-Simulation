@@ -472,11 +472,9 @@ public class Rover {
 
 		try {
 			Coord currentLoc = getCurrentLocation();
-			// changed to line below, previous caused an extra request
-//			MapTile[][] scanMapTiles = doScan().getScanMap(); 
+
 			MapTile[][] scanMapTiles = scanMap.getScanMap();
-//			Communication communication = new Communication(
-//					"http://localhost:3000/api", rovername, "open_secret"); // commented out
+
 			communication.postScanMapTiles(currentLoc, scanMapTiles);
 		} catch (Exception e) {
 			e.printStackTrace();
