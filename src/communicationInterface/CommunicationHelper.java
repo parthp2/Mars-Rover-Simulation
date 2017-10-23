@@ -19,6 +19,7 @@ public class CommunicationHelper {
         MapTile tile = new MapTile(terrain, science, false);
         
         tile.setScannedBySensor((String) o.get("scanned"));
+        tile.setRoverName((String) o.get("rover"));
         
         return tile;
     }

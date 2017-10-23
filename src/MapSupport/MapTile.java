@@ -13,7 +13,7 @@ public class MapTile {
 	public int count = 0;  //undefined usage, possibly use on ScanMap for tracking visits
 	private Science science;	//for use on ScanMap, not used on PlanetMap
 	private boolean hasRover;	//for use on ScanMap, not used on PlanetMap
-	private String scannedBy = null; //for keeping track of which rover first discovered this tile
+	private String roverName = ""; //for keeping track of rover locations from PlanetMap
 	private String scannedBySensor = "0000"; // digits from left to right are Chemical,Radar,Radiation,Spectral
 	
 	public MapTile(){
@@ -62,11 +62,11 @@ public class MapTile {
 		this.elevation = elev;
 		this.hasRover = hasR;
 		this.count = cnt;
-		this.scannedBy = scanBy;
+		this.roverName = scanBy;
 	}
 	
 	public MapTile getCopyOfMapTile(){
-		MapTile rTile = new MapTile(this.terrain, this.science, this.elevation, this.hasRover, this.scannedBy, this.count);	
+		MapTile rTile = new MapTile(this.terrain, this.science, this.elevation, this.hasRover, this.roverName, this.count);	
 		return rTile;
 	}
 
@@ -87,6 +87,7 @@ public class MapTile {
 	public boolean getHasRover() {
 		return this.hasRover;
 	}
+	
 	
 	public String getScannedBySensorValue() {
 		return this.scannedBySensor;
@@ -141,12 +142,12 @@ public class MapTile {
 		this.science = sci;
 	}
 	
-	public boolean setScannedBy(String roverName) {
-		if(this.scannedBy == null){
-			this.scannedBy = roverName;
-			return true;
-		} else {
-			return false;
-		}
+	public void setRoverName(String roverName) {
+		this.roverName = roverName;
 	}
+	
+	public String getRoverName() {
+		return this.roverName;
+	}
+	
 }
