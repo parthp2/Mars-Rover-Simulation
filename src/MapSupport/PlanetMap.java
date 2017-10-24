@@ -348,7 +348,7 @@ public class PlanetMap {
 				
 			// next most important - print terrain and/or science locations
 				//terrain and science
-			} else if(tile.getHasRover()) {
+			} else if(tile.getHasRover() || (startPosCoord.xpos == i && startPosCoord.ypos == j)) {
 				System.out.print("[]");
 			} else if(!terrain.equals(Terrain.SOIL) && !science.equals(Science.NONE)){
 				// both terrain and science

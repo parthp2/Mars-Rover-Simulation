@@ -531,13 +531,14 @@ public class Rover {
 		return null;
 	}
 
+	//FIXME does not always work
 	protected void gatherScience(Coord coord) {
 
 		try {
 //			Communication communication = new Communication(
 //					"http://localhost:3000/api", rovername, "open_secret");
-			communication.markScienceForGather(coord);
 			sendTo_RCP.println("GATHER");
+			communication.markScienceForGather(coord);
 		} catch (Exception e) {
 			e.printStackTrace();
 			System.err.println(
