@@ -461,7 +461,7 @@ public class ROVER_07 extends Rover {
 						
 						Thread.sleep(gatherCooldownRemaining()); // this keeps the rover on resource so other rovers do not pick it up before it is ready
 							
-						
+						Thread.sleep(lagCushion * 4); // sleep regardless if cooldown so move req doesnt mess with gather req
 						
 						if(roverMode.equals(Mode.SEARCH)) {
 							
@@ -487,7 +487,7 @@ public class ROVER_07 extends Rover {
 							
 							if (!tilesToRegatherRemaining.isEmpty()) { // there is still a target
 								
-								System.out.println("gathering complete continuing onto next regather target entering state UPDATING_PATH...");
+								System.out.println("gathering complete continuing onto next regather target entering state FINDING_RESOURCE...");
 								roverState = State.FINDING_RESOURCE;
 							}
 							else {
