@@ -461,7 +461,7 @@ public class ROVER_07 extends Rover {
 						
 						Thread.sleep(gatherCooldownRemaining()); // this keeps the rover on resource so other rovers do not pick it up before it is ready
 							
-						
+						Thread.sleep(lagCushion * 4); // sleep regardless if cooldown so move req doesnt mess with gather req
 						
 						if(roverMode.equals(Mode.SEARCH)) {
 							
