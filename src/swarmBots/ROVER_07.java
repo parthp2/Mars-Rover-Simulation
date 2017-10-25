@@ -487,7 +487,7 @@ public class ROVER_07 extends Rover {
 							
 							if (!tilesToRegatherRemaining.isEmpty()) { // there is still a target
 								
-								System.out.println("gathering complete continuing onto next regather target entering state UPDATING_PATH...");
+								System.out.println("gathering complete continuing onto next regather target entering state FINDING_RESOURCE...");
 								roverState = State.FINDING_RESOURCE;
 							}
 							else {
