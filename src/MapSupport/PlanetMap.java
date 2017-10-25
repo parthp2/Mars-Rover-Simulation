@@ -162,8 +162,7 @@ public class PlanetMap {
 				if(x < 0 || y < 0) continue;
 				if(x > mapWidth - 1 || y > mapHeight - 1) continue;
 				
-				if((x == startPosCoord.xpos && y == startPosCoord.ypos) ||
-						(x == targetPosCoord.xpos && y == targetPosCoord.ypos)) continue;
+				if(x == startPosCoord.xpos && y == startPosCoord.ypos) continue;
 				
 				if(scanMap[i][j].getHasRover()) this.planetMap[x][y].setHasRoverTrue();
 			}	
