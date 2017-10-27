@@ -1,5 +1,16 @@
 package MapSupport;
 
+import java.util.HashMap;
+import java.util.Map;
+
+import org.json.simple.JSONArray;
+import org.json.simple.JSONObject;
+
+import communicationInterface.CommunicationHelper;
+import enums.Science;
+import enums.Terrain;
+
+
 public class PlanetMap {
 	private MapTile[][] planetMap;
 	// width is number of columns is xloc, height is number of rows is yloc

@@ -8,6 +8,7 @@ import java.lang.reflect.Type;
 import java.net.Socket;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -82,6 +83,7 @@ public class ROVER_10 extends Rover {
 	 */
 	private void run() throws IOException, InterruptedException {
 		// Make a socket for connection to the RoverControlProcessor
+		Random rand = new Random();
 		Socket socket = null;
 		try {
 			socket = new Socket(SERVER_ADDRESS, PORT_ADDRESS);
@@ -115,10 +117,14 @@ public class ROVER_10 extends Rover {
 			 */
 			int stepCount = 0;	
 			String line = "";	
-			boolean goingSouth = false;
+			boolean goingSouth = true;
+			boolean goingNorth =false;
+			boolean goingWest=false;
+			boolean goingEast=false;
 			boolean stuck = false; // just means it did not change locations between requests,
 									// could be velocity limit or obstruction etc.
 			boolean blocked = false;
+			String dir = "";
 	
 			// might or might not have a use for this
 			String[] cardinals = new String[4];
@@ -156,8 +162,8 @@ public class ROVER_10 extends Rover {
 	        String corp_secret = "gz5YhL70a2"; // not currently used - for future implementation
 	
 	        Communication com = new Communication(url, rovername, corp_secret);
-	
-
+	   
+	      
 			/**
 			 *  ####  Rover controller process loop  ####
 			 *  This is where all of the rover behavior code will go
@@ -197,32 +203,321 @@ public class ROVER_10 extends Rover {
 				timeRemaining = getTimeRemaining();
 				
 	
+				// pull the MapTile array out of the ScanMap object
+				MapTile[][] scanMapTiles = scanMap.getScanMap();
+				int centerIndex = (scanMap.getEdgeSize() - 1)/2;
+				int random = (int)(Math.random()*8);
+				// tile S = y + 1; N = y - 1; E = x + 1; W = x - 1
 				
 				// ***** MOVING *****
 				// try moving east 5 block if blocked
 				if (blocked) {
-					if(stepCount > 0){
-						moveEast();
-						stepCount -= 1;
-					}
-					else {
-						blocked = false;
-						//reverses direction after being blocked and side stepping
-						goingSouth = !goingSouth;
-					}
-					
+				     if(stepCount > 0){
+				 
+				         
+				         if (random >=0 && random <= 1) // check east
+				         {
+				          if (scanMapTiles[centerIndex+1][centerIndex].getHasRover() 
+				            || scanMapTiles[centerIndex+1][centerIndex].getTerrain() == Terrain.SAND
+				            || scanMapTiles[centerIndex+1][centerIndex].getTerrain() == Terrain.NONE) {
+				           
+				          if (scanMapTiles[centerIndex][centerIndex+1].getHasRover() 
+				            || scanMapTiles[centerIndex][centerIndex+1].getTerrain() == Terrain.SAND
+				            || scanMapTiles[centerIndex][centerIndex+1].getTerrain() == Terrain.NONE) {
+				           
+				            if (scanMapTiles[centerIndex][centerIndex-1].getHasRover() 
+				              || scanMapTiles[centerIndex][centerIndex-1].getTerrain() == Terrain.SAND
+				              || scanMapTiles[centerIndex][centerIndex-1].getTerrain() == Terrain.NONE){
+				            
+				              if (scanMapTiles[centerIndex-1][centerIndex].getHasRover() 
+				                || scanMapTiles[centerIndex-1][centerIndex].getTerrain() == Terrain.SAND
+				                || scanMapTiles[centerIndex-1][centerIndex].getTerrain() == Terrain.NONE){
+				             
+				                 System.out.println("Rover_10 is struck");
+				              }
+				              else
+				               {
+				               moveWest();
+				               goingWest = true;
+				               goingSouth = false;
+				               goingEast = false;
+				               goingNorth = false;
+				               }
+				            
+				            }
+				            else
+				            {
+				             moveNorth();
+				             goingNorth = true;
+				             goingWest = false;
+				             goingSouth = false;
+				             goingEast = false;
+				            
+				            }
+				           
+				          }
+				           
+				          else
+				          {
+				           // request to server to move
+				           moveSouth();
+				           goingSouth = true;
+				           goingEast = false;
+				           goingNorth = false;
+				           goingWest = false;
+				          }
+				          }
+				          else
+				          {
+				           moveEast();
+				           goingEast = true;
+				           goingNorth = false;
+				           goingWest = false;
+				           goingSouth = false;
+				           
+				          }
+				         }
+				        
+				         
+				         else if (random >7  && random <= 10) //check north
+				         {
+				          if (scanMapTiles[centerIndex][centerIndex-1].getHasRover() 
+				            || scanMapTiles[centerIndex][centerIndex -1].getTerrain() == Terrain.SAND
+				            || scanMapTiles[centerIndex][centerIndex -1].getTerrain() == Terrain.NONE) {
+				           
+				          if (scanMapTiles[centerIndex-1][centerIndex].getHasRover() 
+				            || scanMapTiles[centerIndex-1][centerIndex].getTerrain() == Terrain.SAND
+				            || scanMapTiles[centerIndex-1][centerIndex].getTerrain() == Terrain.NONE) {
+				           
+				            if (scanMapTiles[centerIndex+1][centerIndex].getHasRover() 
+				              || scanMapTiles[centerIndex+1][centerIndex].getTerrain() == Terrain.SAND
+				              || scanMapTiles[centerIndex+1][centerIndex].getTerrain() == Terrain.NONE){
+				            
+				              if (scanMapTiles[centerIndex][centerIndex+1].getHasRover() 
+				                || scanMapTiles[centerIndex][centerIndex+1].getTerrain() == Terrain.SAND
+				                || scanMapTiles[centerIndex][centerIndex+1].getTerrain() == Terrain.NONE){
+				             
+				                 System.out.println("Rover_10 is struck");
+				              }
+				              else
+				               {
+				               moveSouth();
+				               goingSouth = true;
+				               goingNorth = false;
+				               goingWest = false;
+				               goingEast = false;
+				               
+				               }
+				            
+				            }
+				            else
+				            {
+				             moveEast();
+				             goingEast = true;
+				             goingSouth = false;
+				             goingNorth = false;
+				             goingWest = false;
+				            
+				            }
+				           
+				          }
+				           
+				          else
+				          {
+				           // request to server to move
+				           moveWest();
+				           goingWest = true;
+				           goingSouth = false;
+				           goingEast = false;
+				           goingNorth = false;
+				          }
+				          }
+				          else
+				          {
+				           moveNorth();
+				           goingNorth = true;
+				           goingWest = false;
+				           goingSouth= false;
+				           goingEast = false;
+				           
+				          }
+				         }
+				         
+				         else if (random >5 && random <= 8) //check west
+				         {
+				          if (scanMapTiles[centerIndex-1][centerIndex].getHasRover() 
+				            || scanMapTiles[centerIndex-1][centerIndex].getTerrain() == Terrain.SAND
+				            || scanMapTiles[centerIndex-1][centerIndex].getTerrain() == Terrain.NONE) {
+				           
+				          if (scanMapTiles[centerIndex+1][centerIndex].getHasRover() 
+				            || scanMapTiles[centerIndex+1][centerIndex].getTerrain() == Terrain.SAND
+				            || scanMapTiles[centerIndex+1][centerIndex].getTerrain() == Terrain.NONE) {
+				           
+				            if (scanMapTiles[centerIndex][centerIndex+1].getHasRover() 
+				              || scanMapTiles[centerIndex][centerIndex+1].getTerrain() == Terrain.SAND
+				              || scanMapTiles[centerIndex][centerIndex+1].getTerrain() == Terrain.NONE){
+				            
+				              if (scanMapTiles[centerIndex][centerIndex-1].getHasRover() 
+				                || scanMapTiles[centerIndex][centerIndex -1].getTerrain() == Terrain.SAND
+				                || scanMapTiles[centerIndex][centerIndex -1].getTerrain() == Terrain.NONE){
+				             
+				                 System.out.println("Rover_10 is struck");
+				              }
+				              else
+				               {
+				               moveNorth();
+				               goingNorth = true;
+				               goingSouth = false;
+				               goingEast = false;
+				               goingWest = false;
+				               }
+				            
+				            }
+				            else
+				            {
+				             moveSouth();
+				             goingSouth = true;
+				             goingWest = false;
+				             goingEast = false;
+				             goingNorth = false;
+				            
+				            }
+				           
+				          }
+				           
+				          else
+				          {
+				           // request to server to move
+				           moveEast();
+				           goingEast = true;
+				           goingSouth = false;
+				           goingNorth = false;
+				           goingWest = false;
+				           
+				          }
+				          }
+				          else
+				          {
+				           moveWest();
+				           goingWest = true;
+				           goingSouth = false;
+				           goingEast =false;
+				           goingNorth = false;
+				           
+				          }
+				         }
+				    
+				         else if (random >3 && random <= 5) // check south
+				         {
+				          if (scanMapTiles[centerIndex][centerIndex+1].getHasRover() 
+				            || scanMapTiles[centerIndex][centerIndex +1].getTerrain() == Terrain.SAND
+				            || scanMapTiles[centerIndex][centerIndex +1].getTerrain() == Terrain.NONE) {
+				           
+				          if (scanMapTiles[centerIndex][centerIndex-1].getHasRover() 
+				            || scanMapTiles[centerIndex][centerIndex-1].getTerrain() == Terrain.SAND
+				            || scanMapTiles[centerIndex][centerIndex-1].getTerrain() == Terrain.NONE) {
+				           
+				            if (scanMapTiles[centerIndex-1][centerIndex].getHasRover() 
+				              || scanMapTiles[centerIndex-1][centerIndex].getTerrain() == Terrain.SAND
+				              || scanMapTiles[centerIndex-1][centerIndex].getTerrain() == Terrain.NONE){
+				            
+				              if (scanMapTiles[centerIndex+1][centerIndex].getHasRover() 
+				                || scanMapTiles[centerIndex+1][centerIndex].getTerrain() == Terrain.SAND
+				                || scanMapTiles[centerIndex+1][centerIndex].getTerrain() == Terrain.NONE){
+				             
+				                 System.out.println("Rover_10 is struck");
+				              }
+				              else
+				               {
+				               moveEast();
+				               goingEast = true;
+				               goingSouth = false;
+				               goingNorth = false;
+				               goingWest = false;
+				               }
+				            
+				            }
+				            else
+				            {
+				             moveWest();
+				             goingWest = true;
+				             goingNorth = false;
+				             goingSouth = false;
+				             goingEast = false;
+				            
+				            }
+				           
+				          }
+				           
+				          else
+				          {
+				           
+				           moveNorth();
+				           goingNorth = true;
+				           goingEast = false;
+				           goingWest = false;
+				           goingSouth = false;
+				          }
+				          }
+				          else
+				          {
+				           moveSouth();
+				           goingSouth = true;
+				           goingEast = false;
+				           goingNorth = false;
+				           goingWest = false;
+				           
+				          }
+				         }
+				         stepCount=-1;
+				        }
+				        else {
+				        	
+				        
+				         
+				         blocked = false;
+				         if(goingSouth)
+				         {
+				          goingNorth = false;
+				          goingWest = false;
+				          goingEast=  false;
+				         }
+				         else if(goingNorth)
+				         {
+				          goingSouth = false;
+				          goingWest = false;
+				          goingEast=  false;
+				          
+				         }
+				         else if (goingWest)
+				         {
+				          goingSouth = false;
+				          goingNorth = false;
+				          goingEast=  false;
+				          
+				         }
+				         else if (goingEast)
+				         {
+				          
+				          goingNorth = false;
+				          goingWest = false;
+				          goingSouth=  false;
+				         }
+				         
+				        
+				        }
+				        
 				} else {
 	
 					// pull the MapTile array out of the ScanMap object
-					MapTile[][] scanMapTiles = scanMap.getScanMap();
-					int centerIndex = (scanMap.getEdgeSize() - 1)/2;
+					//MapTile[][] scanMapTiles = scanMap.getScanMap();
+					//int centerIndex = (scanMap.getEdgeSize() - 1)/2;
 					// tile S = y + 1; N = y - 1; E = x + 1; W = x - 1
 	
 					if (goingSouth) {
 						// check scanMap to see if path is blocked to the south
 						// (scanMap may be old data by now)
 						if (scanMapTiles[centerIndex][centerIndex +1].getHasRover() 
-								|| scanMapTiles[centerIndex][centerIndex +1].getTerrain() == Terrain.ROCK
 								|| scanMapTiles[centerIndex][centerIndex +1].getTerrain() == Terrain.SAND
 								|| scanMapTiles[centerIndex][centerIndex +1].getTerrain() == Terrain.NONE) {
 							blocked = true;
@@ -233,12 +528,12 @@ public class ROVER_10 extends Rover {
 
 						}
 						
-					} else {
+					} 
+					else if(goingNorth) {
 						// check scanMap to see if path is blocked to the north
 						// (scanMap may be old data by now)
 						
 						if (scanMapTiles[centerIndex][centerIndex -1].getHasRover() 
-								|| scanMapTiles[centerIndex][centerIndex -1].getTerrain() == Terrain.ROCK
 								|| scanMapTiles[centerIndex][centerIndex -1].getTerrain() == Terrain.SAND
 								|| scanMapTiles[centerIndex][centerIndex -1].getTerrain() == Terrain.NONE) {
 							blocked = true;
@@ -246,6 +541,37 @@ public class ROVER_10 extends Rover {
 						} else {
 							// request to server to move
 							moveNorth();			
+						}					
+					}
+					
+					else if(goingWest) {
+						// check scanMap to see if path is blocked to the north
+						// (scanMap may be old data by now)
+						
+						if (scanMapTiles[centerIndex-1][centerIndex].getHasRover() 
+								|| scanMapTiles[centerIndex-1][centerIndex].getTerrain() == Terrain.SAND
+								|| scanMapTiles[centerIndex-1][centerIndex].getTerrain() == Terrain.NONE)
+						 {
+							blocked = true;
+							stepCount = 5;  //side stepping
+						} else {
+							// request to server to move
+							moveWest();			
+						}					
+					}
+					
+					else if(goingEast) {
+						// check scanMap to see if path is blocked to the north
+						// (scanMap may be old data by now)
+						
+						if (scanMapTiles[centerIndex+1][centerIndex].getHasRover() 
+								|| scanMapTiles[centerIndex+1][centerIndex].getTerrain() == Terrain.SAND
+								|| scanMapTiles[centerIndex+1][centerIndex].getTerrain() == Terrain.NONE) {
+							blocked = true;
+							stepCount = 5;  //side stepping
+						} else {
+							// request to server to move
+							moveEast();			
 						}					
 					}
 				}
@@ -279,7 +605,9 @@ public class ROVER_10 extends Rover {
 	        }
 	    }
 
-	} // END of Rover run thread
+	}
+
+	 // END of Rover run thread
 	
 	// ####################### Additional Support Methods #############################
 	

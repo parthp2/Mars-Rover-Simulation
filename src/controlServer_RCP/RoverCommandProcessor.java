@@ -80,7 +80,7 @@ public class RoverCommandProcessor {
 	// Changes these as necessary for good simulation balance
     static final int WHEELS_TIME_PER_SQUARE = 400;
     static final int TREADS_TIME_PER_SQUARE = 900;
-    static final int WALKER_TIME_PER_SQUARE = 1200;
+    static final int WALKER_TIME_PER_SQUARE =10;
     
     // limit of how many Calls can be made to the swarm server during a 1 second span
     static final int CALLS_PER_SECOND_LIMIT = 500;

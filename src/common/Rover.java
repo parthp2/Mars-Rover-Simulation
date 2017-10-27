@@ -97,7 +97,7 @@ public class Rover {
 		sendTo_RCP.println("LOC");
 		line = receiveFrom_RCP.readLine();
 		if (line == null) {
-			System.out.println("ROVER_00 check connection to server");
+			System.out.println(rovername+" check connection to server");
 			line = "";
 		}
 		if (line.startsWith("LOC")) {
@@ -175,11 +175,11 @@ public class Rover {
 		String jsonScanMapIn = receiveFrom_RCP.readLine(); 
 		
 		if (jsonScanMapIn == null) {
-			System.out.println("ROVER_00 check connection to server");
+			System.out.println(rovername+"check connection to server");
 			jsonScanMapIn = "";
 		}
 		StringBuilder jsonScanMap = new StringBuilder();
-		System.out.println("ROVER_00 incomming SCAN result - first readline: "
+		System.out.println(rovername+" incomming SCAN result - first readline: "
 				+ jsonScanMapIn);
 
 		if (jsonScanMapIn.startsWith("SCAN")) {
