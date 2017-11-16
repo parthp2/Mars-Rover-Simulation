@@ -234,6 +234,7 @@ public class ROVER_07 extends Rover {
 				startTime = System.currentTimeMillis();
 				
 				// **** Request Rover Location from RCP ****
+				Thread.sleep(lagCushion);
 				currentLoc = getCurrentLocation();
 				
 				previousPositions.add(currentLoc); // adds to the previousPositions list
@@ -247,6 +248,9 @@ public class ROVER_07 extends Rover {
 
 				// ***** do a SCAN *****
 				// gets the scanMap from the server based on the Rover current location
+				
+				
+				Thread.sleep(lagCushion);
 				scanMap = doScan();
 				
 				// modifies scanMap before sending it to communication server adding rover location and scan data
